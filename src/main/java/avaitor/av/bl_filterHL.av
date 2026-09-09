@@ -1,0 +1,23 @@
+fn bl_filterHL(arr, x, y) {
+    let list = seq.list();
+    let num = count(arr);
+    let min = math.round(x);
+    let max = num - math.round(y);
+    arr = sort(arr, comparator(lambda(x, y) -> decimal(x.price) > decimal(y.price) end));
+    ##p("#{num} #{min} #{max} #{arr}");
+    for i in range(min, max){
+        seq.add(list,arr[i]);
+    }
+    for i in range(0, min){
+    	let arg = arr[i];
+	    arg.maxFilter = true;
+  	}
+  	for i in range(max, num){
+    	let arg = arr[i];
+    	arg.minFilter = true;
+  	}
+    p("#{count(list)}");
+    return list;
+}
+
+return bl_filterHL(arr, x, y);

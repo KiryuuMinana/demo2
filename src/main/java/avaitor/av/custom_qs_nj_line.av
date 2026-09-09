@@ -1,0 +1,15 @@
+## H003-01-02
+fn qs_line(RQ, MBPL, X, Y1, Z, score){
+    QS = seq.list();
+    for key in RQ{
+        let qs = key;
+        qs.price = X + (Z * (MBPL - key.price) / Y1);
+        if (qs.price > score){
+            qs.price = score;
+        }
+        seq.add(QS,qs);
+    }
+    return QS;
+}
+
+return qs_line(RQ, MBPL, X, Y1, Z, score);

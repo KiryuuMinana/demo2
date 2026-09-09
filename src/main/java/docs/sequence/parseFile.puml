@@ -1,0 +1,42 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+skinparam sequenceMessageAlign center
+autonumber
+box gbes-management-service #B8DED0
+control ProjectGenServiceImpl
+participant ProjectGenServiceImpl
+participant BaseCreateProjectByTenderFileServiceImpl
+participant TenderPhysicalMappingService
+participant BaseParseTenderFileServiceImpl
+end box
+
+box file-ststem-adapter #E6E3C5
+participant IGboatGfcAdapterService
+end box
+
+box gbes-project-data #509296
+database EvalPdfServiceImpl
+end box
+
+ProjectGenServiceImpl -> ProjectGenServiceImpl : createProject
+ProjectGenServiceImpl -> IGboatGfcAdapterService : extractEx
+ProjectGenServiceImpl <- IGboatGfcAdapterService : 返回解压的招标文件
+ProjectGenServiceImpl -> BaseCreateProjectByTenderFileServiceImpl : createProject
+BaseCreateProjectByTenderFileServiceImpl -> TenderPhysicalMappingService : execute 物理映射
+TenderPhysicalMappingService -> TenderPhysicalMappingService : parseProject 解析项目
+TenderPhysicalMappingService -> TenderPhysicalMappingService : saveProject 项目物理映射
+TenderPhysicalMappingService -> TenderPhysicalMappingService : parseBidSection 解析标段信息 (项目-标段)
+TenderPhysicalMappingService -> TenderPhysicalMappingService : saveBidSection 标段物理映射\n设置清单文件和附件
+BaseCreateProjectByTenderFileServiceImpl <- TenderPhysicalMappingService :返回新建项目信息
+ProjectGenServiceImpl <- BaseCreateProjectByTenderFileServiceImpl :初始化完毕
+ProjectGenServiceImpl -> BaseCreateProjectByTenderFileServiceImpl : copyTenderFile 复制招标文件
+BaseCreateProjectByTenderFileServiceImpl -> BaseCreateProjectByTenderFileServiceImpl : fillCopyTenderFileInfo 填充复制招标文件信息
+BaseCreateProjectByTenderFileServiceImpl -> BaseCreateProjectByTenderFileServiceImpl : saveFileTemplate 保存文件模板
+BaseCreateProjectByTenderFileServiceImpl -> BaseParseTenderFileServiceImpl : addFileList
+BaseParseTenderFileServiceImpl -> BaseParseTenderFileServiceImpl : parseFileList\n解析招标文件、清单文件和附件
+BaseParseTenderFileServiceImpl -> EvalPdfServiceImpl : 文件入库
+
+
+
+
+@enduml

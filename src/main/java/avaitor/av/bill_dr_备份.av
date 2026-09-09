@@ -1,0 +1,53 @@
+fn bill_dr(SPEP, BBP, BillCP) {
+    p("bill_dr");
+
+    let bbpMap = seq.map();
+    for arg in BBP {
+        seq.put(bbpMap, arg.id, arg.price);
+    }
+
+    let billCPMap = seq.map();
+    for arg in BillCP {
+        seq.put(billCPMap, arg.id, arg.price);
+    }
+
+    let result = seq.list();
+
+    for arg in SPEP {
+        let billId = arg.billId;
+        let price = arg.price;
+        let jzj = bbpMap[billId];
+        let maxPrice = billCPMap[billId];
+        let dr = nil;
+        let overtake = 0;  ## 默认不超过限价
+
+        if (jzj != nil && jzj != 0) {
+            price = decimal(price);
+            jzj = decimal(jzj);
+
+            if (maxPrice != nil) {
+                maxPrice = decimal(maxPrice);
+                if (price > maxPrice) {
+                    ## 超过限价时，正常计算偏差率，但标记overtake为1
+                    dr = (price - jzj) / jzj * 100;
+                    overtake = 1;
+                } else {
+                    dr = (price - jzj) / jzj * 100;
+                }
+            } else {
+                dr = (price - jzj) / jzj * 100;
+            }
+        }
+
+        ## 使用math.abs()，并添加overtake字段
+        seq.add(result, seq.map(
+            "id", arg.id,
+            "billId", billId,
+            "priceold", dr,
+            "price", dr == nil ? nil : math.abs(dr),
+            "overtake", overtake
+        ));
+    }
+
+    return result;
+}

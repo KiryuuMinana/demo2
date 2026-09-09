@@ -1,0 +1,72 @@
+## fn filterEPnPlus(PL, isFilter, EPn, MBPL, LBPL) 过滤最高最低限价，只有最高就只过滤最高，有最高的情况下才会过滤最低
+
+fn filterEPnPlus(PL, isFilter, EPn, MBPL, LBPL) {
+    if (isFilter == false) {
+        return EPn;
+    }
+    if (MBPL == nil) {
+        return EPn;
+    }
+    SEPn = seq.list();
+    let isEpn = false;
+    let epnMap = seq.map();
+    for key in EPn{
+        seq.put(epnMap,key.id,key);
+    }
+    let isOpen = false;
+    for key in PL{
+        if(key.requestSystemSource != nil && key.requestSystemSource == 0){
+            isOpen = true;
+            let epn = seq.get(epnMap,key.id);
+            if(epn != nil){
+                seq.add(SEPn,epn)
+            }
+        }
+    }
+    if(isOpen == true){
+        return SEPn;
+    }
+
+##    for key in PL{
+##        let epn = seq.get(epnMap,key.id);
+##        if (key.price == nil){
+##            isEpn = true;
+##            if (epn != nil && epn.price <= MBPL){
+##                seq.add(SEPn,epn);
+##            }
+##        }
+##    }
+
+##  PL是评标价的情况
+
+    if(PL == Nil){
+        isEPn = true;
+        for epn in EPn{
+            if (epn != nil && epn.price <= MBPL){
+                if (LBPL != nil && epn.price < LBPL){
+                    continue;
+                }
+                seq.add(SEPn,epn);
+            }
+        }
+    }
+
+##  PL是非评标价的动态字段的情况
+
+    if (isEpn == false){
+        for key in PL{
+            if (key.price <= MBPL){
+                if (LBPL != nil && key.price < LBPL){
+                    continue;
+                }
+                let epn = seq.get(epnMap,key.id);
+                if(epn != nil){
+                    seq.add(SEPn,epn)
+                }
+             }
+          }
+   }
+   return SEPn;
+}
+
+return filterEPnPlus(PL, isFilter, EPn, MBPL, LBPL);

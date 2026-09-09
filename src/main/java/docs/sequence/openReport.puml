@@ -1,0 +1,82 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+
+title 报表生成与下载时序图
+
+participant "客户端" as Client
+box gbes-openbid-app #B8DED0
+participant "OpenReportController" as AppController
+end box
+box gbes-openbid-service #E6E3C5
+participant "OpenReportServiceImpl" as ServiceImpl
+end box
+box gbes-openreport-provider #509296
+participant "ReportComponent" as Component
+participant "ReportServiceImpl" as ReportService
+participant "BaseGenReportHandler" as Handler
+end box
+box gbes-config-service #FFFBF8
+participant "SysReportConfigController" as ConfigService
+end box
+box 其他组件 #D6854F
+participant "Redis" as Redis
+participant "文件系统" as FileSystem
+end box
+
+Client -> AppController: POST /genAndDownOpenExcelReportFile
+activate AppController
+AppController -> ServiceImpl: genExcelReport()
+activate ServiceImpl
+
+ServiceImpl -> Component: genExcelReport()
+activate Component
+Component -> ReportService: genExcelReport()
+activate ReportService
+
+ReportService -> Handler: getExcelReportTemplate()
+activate Handler
+Handler -> ConfigService: GET /getReportTemplateByOriginalTempId
+activate ConfigService
+ConfigService --> Handler: ReportTemplate
+deactivate ConfigService
+Handler --> ReportService:
+deactivate Handler
+
+ReportService -> Redis: lock() 获取分布式锁
+activate Redis
+Redis --> ReportService: 加锁成功
+deactivate Redis
+
+group 生成Excel文件
+ReportService -> ReportService: getGenReportFileInfo()
+ReportService -> ReportService: engineGenReportExcel()
+ReportService -> FileSystem: 上传文件
+activate FileSystem
+FileSystem --> ReportService: fileId
+deactivate FileSystem
+ReportService -> ReportService: insertNewGenExcelReport()
+end
+
+ReportService -> Redis: unLock() 释放锁
+activate Redis
+deactivate Redis
+
+ReportService --> Component: fileId
+deactivate ReportService
+Component --> ServiceImpl:
+deactivate Component
+
+ServiceImpl -> AppController:
+deactivate ServiceImpl
+
+AppController -> AppController: 构造 GetOpenReportFileUrlArg
+AppController -> ServiceImpl: getReportFileTempDownLoadUrl()
+activate ServiceImpl
+ServiceImpl --> AppController: 临时下载URL
+deactivate ServiceImpl
+
+AppController --> Client: 返回下载URL
+deactivate AppController
+@enduml

@@ -1,0 +1,85 @@
+@startuml
+' 设置全局样式
+skinparam {
+    defaultFontName Arial
+    roundCorner 10
+    linetype ortho
+}
+
+' 定义实体和属性
+entity "eval_manual_score_info" as score_info {
+  * id : varchar
+  --
+  * bidder_id : varchar
+  * expert_id : varchar
+  * industry : varchar
+  * step_id : varchar
+  * bid_section_id : varchar
+  manual_score : decimal
+  other_score_rate_show : varchar
+  reason : varchar
+  is_commit : int [0:未提交 1:已提交]
+  create_time : timestamp
+  update_time : timestamp
+}
+
+entity "eval_manual_score_summary" as score_summary {
+  * id : varchar
+  --
+  * bidder_id : varchar
+  * industry : varchar
+  * step_id : varchar
+  * bid_section_id : varchar
+  summary_score : decimal
+  reason : varchar
+  create_time : timestamp
+  update_time : timestamp
+}
+
+entity "eval_manual_bidder_price" as bidder_price {
+  * id : varchar
+  --
+  * bid_section_id : varchar
+  * bidder_id : varchar
+  bidder_manual_price : varchar
+  bidder_manual_revise_price : varchar
+  reason : varchar
+}
+
+entity "eval_manual_score_step_state" as step_state {
+    * id : varchar
+    --
+    * step_id : varchar
+    * bid_section_id : varchar
+    state : int [0:未提交 1:已提交未汇总 2:已汇总]
+    commit_person : int 已提交人数
+}
+' 定义关系
+score_info }|..|| score_summary : " 聚 合 生 成  \n(取 最 大 值)  "
+score_summary }o--|| bidder_price : "关  联"
+score_info }o--|| bidder_price : "关  联"
+
+' 添加注释
+note top of score_info
+  手 动 得 分 记 录 表
+  记 录 专 家 对 投 标 单 位 在 特 定 标 段、
+  步 骤、行 业 上 的 手 动 评 分
+end note
+
+note top of score_summary
+  手 动 汇 总  得 分 表
+  初 始 值 = 对 应 专 家 评 分 的 最 大 值
+  后 续 可 手 动 修 改
+end note
+
+note top of bidder_price
+  手 动 算 分 算 法 报 价 表
+  存 储 投 标  单 位 的 原 始 报 价
+  和 修 正 报 价
+end note
+
+note top of step_state
+  手 动 算 分 报 价 打 分 状 态 表
+end note
+
+@enduml

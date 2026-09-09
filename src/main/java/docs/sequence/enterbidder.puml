@@ -1,0 +1,72 @@
+@startuml
+actor "开标代理" as Agent
+participant "开标系统前端" as Frontend
+participant "开标系统后端" as Backend
+database "规则配置库" as RuleDB
+
+== 进入“确定入围”步骤 ==
+Frontend -> Backend: 请求页面初始化
+Backend -> Backend: 检查前置条件\n(如：解密完成/信用确认完成)
+alt 前置条件未完成
+    Backend --> Frontend: 返回缺省页内容
+    Frontend -> Agent: 显示缺省页面
+else 前置条件已完成
+    Backend -> RuleDB: 获取规则标识及配置\n(按地区/行业/专业/评标办法)
+    RuleDB --> Backend: 返回入围配置(不含推荐/候补/递补)
+    Backend -> Backend: 判断有效投标人数 与 入围总人数
+
+    alt 有效人数 <= 入围总人数
+        Backend -> Backend: 1. 新建一轮“入围”\n2. 标记为“因人数不足转自动全部入围”\n3. 所有单位标记“已入围”\n4. 标记本轮为“已完成”
+        Backend --> Frontend: 返回初始化数据\n(全入围，不可编辑)
+        Frontend -> Agent: 展示全部已入围列表\n仅可点击“完成确定入围”按钮
+    else 有效人数 > 入围总人数
+        Backend -> Backend: 根据“固定人数”与“固定轮数”\n配置进行分支初始化
+
+        alt 固定人数 && 固定轮数
+            Backend -> Backend: 新建第一轮入围\n初始化所有单位为“未入围”
+            Backend --> Frontend: 返回第一轮数据
+            Frontend -> Agent: 展示可勾选列表\n(至多选X人)
+
+            Agent -> Frontend: 勾选恰好X个投标人
+            Frontend -> Frontend: 校验通过，按钮高亮
+            Agent -> Frontend: 点击“确认本轮入围名单”
+            Frontend -> Backend: 提交本轮结果
+
+            loop 循环直至固定轮数完成
+                Backend -> Backend: 标记本轮“已完成”\n新建下一轮(扣除已入围)\n初始化剩余单位为“未入围”
+                Backend --> Frontend: 返回下一轮数据
+                Frontend -> Agent: 展示新一轮可勾选列表
+                Agent -> Frontend: 勾选并确认...
+            end
+            Backend -> Backend: 固定轮数结束，进入推荐入围逻辑
+
+        else 固定人数 && 不固定轮数
+            Backend -> Backend: 新建第一轮入围\n初始化所有单位为“未入围”
+            Backend --> Frontend: 返回第一轮数据
+            Frontend -> Agent: 展示可勾选列表\n(至多选Y人)
+
+            loop 直至总入围人数=Y
+                Agent -> Frontend: 勾选至少1人，点击确认
+                Frontend -> Backend: 提交本轮结果
+                alt 总入围数 + 本轮数 <= Y
+                    Backend -> Backend: 判读总和是否等于Y
+                    alt 总人数等于Y
+                       Backend -> Backend: 进入推荐入围逻辑
+                    else 总人数小于Y
+                        Backend -> Backend: 新建下一轮(扣除已入围)\n初始化剩余单位为“未入围”
+                        Backend --> Frontend: 返回下一轮数据
+                    end
+                end
+            end
+
+        else 不固定人数
+            Backend -> Backend: 仅新建一轮入围\n初始化所有单位为“未入围”
+            Backend --> Frontend: 返回本轮数据
+            Frontend -> Agent: 展示可勾选列表(无上限)
+            Agent -> Frontend: 勾选至少1人，点击确认
+            Frontend -> Backend: 提交本轮结果
+            Backend -> Backend: 进入推荐入围逻辑
+        end
+    end
+end
+@enduml

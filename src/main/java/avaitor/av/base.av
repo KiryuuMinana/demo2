@@ -1,0 +1,13 @@
+fn basedemo(){
+##    C = nil;
+    C = 250;
+    if(C==nil){
+        C = 123;
+        p(C);
+    }
+    if(C!=nil){
+        p(C);
+    }
+}
+
+basedemo();

@@ -1,0 +1,20 @@
+## 评标价对照表法 - 偏差率
+## 公式：偏差率 = (投标人报价 - 评标基准价) / 评标基准价
+## 说明：与差值法 custom_deviation_yc_B0010101 公式一致，仍按「比例」写入 price（如 -0.3% 存为 -0.003）。
+##       百分数形式的「100% ×」在得分脚本中再 *100 换算，以保持下游字段结构不变。
+## 入参：list=EPn（评标价列表，元素含 id/price），param=BP（评标基准价）
+## 出参：DRn，元素为 seq.map("id", id, "price", 偏差率比例)
+
+fn custom_deviation_price_table(list, param) {
+    DRn = nil;
+    for key in list {
+        if DRn == nil {
+            DRn = seq.list();
+        }
+        let DR = (key.price - param) / param;
+        seq.add(DRn, seq.map("id", key.id, "price", DR));
+    }
+    return DRn;
+}
+
+return custom_deviation_price_table(EPn, BP);

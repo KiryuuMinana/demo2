@@ -1,0 +1,10 @@
+fn f_random_value(list) {
+    if is_empty(list) {
+        return 0.0M;
+    }
+    let index = math.floor(rand() * count(list));
+    let currValue = list[index];
+    return currValue.price;
+}
+
+return f_random_value(list);

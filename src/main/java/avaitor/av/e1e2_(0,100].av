@@ -1,0 +1,63 @@
+## 要求(0,100]  E2的 且E1>E2
+
+fn generateE2Regex(E1){
+    if (E1 == nil || string.length(str(E1)) == 0 || type(E1) == "function") {
+        return "^(?!0(\\.0{1,2})?$)(\\d{0,2}?(\\.\\d{1,2})?|100(\\.0{1,2})?)$";
+    }
+    let e = double(E1)*100;
+    let integerPart = bigint(e/100);
+    let decimalPart = math.round(e - integerPart*100);
+    let regex = "";
+    let ten = nil;
+    let bits = nil;
+    if (integerPart > 0) {
+        ten =  bigint(integerPart/10);
+        bits = math.round(integerPart-ten*10);
+        if (ten == 0){
+            regex = regex + "[0-" + (bits - 1) + "](\\.\\d{1,2})?";
+        }
+        else {
+            if (ten == 1) {
+                regex = regex + "[0-9](\\.\\d{1,2})?";
+                if (bits != 0) {
+                    regex = regex + "|1[0-" + (bits - 1) + "](\\.\\d{1,2})?";
+                }
+            }
+            else {
+                regex = regex + "[0-9](\\.\\d{1,2})?" + "|[0-" + (ten - 1) + "]\\d(\\.\\d{1,2})?";
+                if (bits != 0) {
+                    regex = regex  + "|" + ten + "[0-" + (bits - 1) + "](\\.\\d{1,2})?";
+                }
+            }
+        }
+    }
+    if (decimalPart > 0) {
+        ten =  bigint(integerPart/10);
+        bits = math.round(integerPart-ten*10);
+        if (string.length(regex) > 0) {
+            regex = regex + "|";
+        }
+        if (ten == 0){
+            regex = regex + bits + "(\\.";
+        }
+        else {
+            regex = regex + ten + bits + "(\\.";
+        }
+        let tens = bigint(decimalPart/10);
+        let hundredths = math.round(decimalPart-tens*10);
+        if (tens == 0 && hundredths > 0) {
+            regex = regex + "0[0-" + (hundredths - 1) + "]?)?";
+        }
+        else {
+            regex = regex + "([0-" + (tens - 1) + "]\\d?";
+            if (hundredths > 0) {
+                regex = regex + "|" + tens + "[0-" + (hundredths - 1) + "]?";
+            }
+            regex = regex + "))?";
+        }
+    }
+    regex = "^(?!0(\\.0{1,2})?$)(" + regex + ")$";
+    return regex;
+}
+
+return generateE2Regex(E1);

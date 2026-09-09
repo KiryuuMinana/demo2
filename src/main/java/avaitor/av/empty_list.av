@@ -1,0 +1,12 @@
+fn empty_list(list){
+    QSn = nil;
+    for key in list{
+        if QSn == nil {
+            QSn = seq.list();
+        }
+		seq.add(QSn, seq.map("id", key.id, "price", 0));
+	}
+	return QSn;
+}
+
+return empty_list(RQ);

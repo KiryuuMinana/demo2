@@ -1,0 +1,53 @@
+@startuml
+actor User
+participant ControlPriceController
+participant ControlPriceServiceImpl
+participant CheckFileController
+participant evalCheckBidService
+participant FileUtils
+participant evalPdfDao
+participant tenderQuotationDetailService
+participant openBidSectionDao
+participant formulaParamService
+participant evalDynamicFieldService
+participant parseService
+
+User -> ControlPriceController: 调用 parseControlPriceFile()
+ControlPriceController -> ControlPriceServiceImpl: parseControlPriceFile(arg)
+ControlPriceServiceImpl -> openBidSectionDao: 查找标段信息
+openBidSectionDao --> ControlPriceServiceImpl: 返回标段信息
+
+alt 标段信息不存在
+    ControlPriceServiceImpl -> ControlPriceController: 抛出 DataOptionExcetion
+else 标段信息存在
+    ControlPriceServiceImpl -> parseService: 获取 MatchParamVO
+    ControlPriceServiceImpl -> parseService: 获取 IParseCtrlPriceService
+    ControlPriceServiceImpl -> FileUtils: 解压控制价文件
+    ControlPriceServiceImpl -> parseService: 检查并解析控制价文件
+
+    alt 多报价项目
+        ControlPriceServiceImpl -> tenderQuotationDetailService: 获取报价明细
+        tenderQuotationDetailService --> ControlPriceServiceImpl: 返回报价明细列表
+    end
+
+    alt 清单文件格式为Excel
+        ControlPriceServiceImpl -> evalPdfDao: 保存PDF文件
+    else XML格式
+        ControlPriceServiceImpl -> evalCheckBidService: 保存控制价文件到清标表
+        ControlPriceServiceImpl -> formulaParamService: 更新估算
+        formulaParamService --> ControlPriceServiceImpl: 返回更新结果
+        ControlPriceServiceImpl -> evalDynamicFieldService: 更新动态字段
+        evalDynamicFieldService --> ControlPriceServiceImpl: 返回更新结果
+        ControlPriceServiceImpl -> parseService: 保存控制价信息扩展
+        ControlPriceServiceImpl -> CheckFileController: 调用 createFirstCheckFile()
+        CheckFileController -> evalCheckBidService: 保存清标文件
+        evalCheckBidService --> CheckFileController: 返回结果
+    end
+
+    ControlPriceServiceImpl -> FileUtils: 删除临时文件
+    ControlPriceServiceImpl -> ControlPriceController: 返回控制价信息
+end
+
+ControlPriceController -> User: 返回解析结果
+
+@enduml

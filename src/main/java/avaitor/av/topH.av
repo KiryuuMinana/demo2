@@ -1,0 +1,41 @@
+fn topH(args, n, EPn){
+    if(args == nil || count(args)==0){
+        return EPn;
+    }
+    let list = seq.list();
+    let epnMap = seq.map();
+    for key in EPn{
+        seq.put(epnMap,key.id,key);
+    }
+    args = sort(args, comparator(lambda(x, y) -> decimal(x.price) > decimal(y.price) end));
+    let uniqueList = seq.list();
+    for item in args {
+        let price = decimal(item.price);
+        if (!include(uniqueList, price)) {
+            seq.add(uniqueList, price);
+        }
+    }
+    n = min(n, count(uniqueList)) - 1;
+    p("============n============");
+    p(n);
+    p("============n============");
+    let minPrice = uniqueList[n];
+    p("============minPrice============");
+    p(minPrice);
+    p("============minPrice============");
+
+    for arg in args{
+        if(decimal(arg.price) >= minPrice){
+            let epn = seq.get(epnMap,arg.id);
+            if(epn != nil){
+                seq.add(list, epn);
+            }
+        }
+    }
+    p("topH EP");
+    p(list);
+    p("topH EP END");
+    return list;
+}
+
+return topH(args, n, EPn);

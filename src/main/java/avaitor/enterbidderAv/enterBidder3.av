@@ -1,0 +1,38 @@
+## enterBidder3
+## 判断是否开启当前轮次，并返回页面展示所需状态（不固定总人数、仅1轮）
+## 参数说明：
+##   CR           : 当前已生成轮次（仅1轮，从0开始，0表示尚未开始，1及以上表示已跑过）
+##   IB           : 当前初始化的投标人列表
+##                  若入围轮次详情表数据为空，则为自定义有效投标人列表；
+##                  否则为自定义有效投标人列表与入围轮次详情表中所有已勾选入围投标单位的差集
+
+fn enterBidder3(CR, IB) {
+
+    ## 分支1：不是第一轮（CR != 0），仅1轮的规则下，第2次及以上不再开启
+    if (CR != 0) {
+        let result = seq.map();
+        seq.put(result, "isOpen", false);               ## 本轮不开启
+        seq.put(result, "checkStatus", -3);             ## -3：可能已勾选足够人数
+
+        return result;
+    } else {
+
+        ## 分支2：开启本轮，正常至少勾选1人
+        let checkableCount = count(IB);             ## 可勾选人数 = IB列表总人数
+
+        let result = seq.map();
+        seq.put(result, "isOpen", true);            ## 开启本轮
+        seq.put(result, "currentRound", CR + 1);    ## 当前轮次（第一轮=1）
+        seq.put(result, "checkStatus", -2);         ## -2：至少勾选1人
+        seq.put(result, "checkableCount", checkableCount); ## 可勾选人数=IB总人数
+        let IbList = seq.list();
+        for ib_item in IB {
+            seq.add(IbList, seq.map('id', ib_item, 'checked', 0));
+        }
+        seq.put(result, "IbList", IbList);          ## 页面展示入围人列表，全部不打钩
+        return result;
+
+    }
+}
+
+return enterBidder3(CR, IB);

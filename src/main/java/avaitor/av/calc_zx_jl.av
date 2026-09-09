@@ -1,0 +1,49 @@
+## arr是BPS arr是一个列表，其中每一个元素是map，map包含id和price两个字段，其中id指的是投标人id，price指的是价格
+## list是JLDY或者ZXDY的已过滤被否决单位的投标人与汇总得分列表，list是一个列表，其中每一个元素是map，map包含id和price两个字段，其中id指的是投标人id，price指的是分数
+## 需要先在list中只留下arr中存在的投标人id，然后再在此时的list中找到分数最高的若干投标单位，记为投标单位列表bidderIdList
+## 然后再从arr中把bidderIdList的价格都取出来，求平均值，最后返回该数值
+fn calc_zx_jl(arr, list) {
+    let arrIdList = seq.list();
+    for key in arr {
+        seq.add(arrIdList, key.id);
+    }
+
+    let filteredList = filter(list, lambda(x) -> include(arrIdList, x.id) end);
+    if (count(filteredList) == 0) {
+        return 0M;
+    }
+
+    filteredList = sort(filteredList, comparator(lambda(x, y) -> decimal(x.price) > decimal(y.price) end));
+    let maxItem = filteredList[0];
+    let maxScore = decimal(maxItem.price);
+
+    let bidderIdList = seq.list();
+    for item in filteredList {
+        if (decimal(item.price) == maxScore) {
+            seq.add(bidderIdList, item.id);
+        } else {
+            break;
+        }
+    }
+
+    let priceMap = seq.map();
+    for key in arr {
+        seq.put(priceMap, key.id, key.price);
+    }
+
+    let sum = 0M;
+    let cnt = 0;
+    for id in bidderIdList {
+        let price = seq.get(priceMap, id);
+        if (price != nil) {
+            sum = sum + decimal(price);
+            cnt = cnt + 1;
+        }
+    }
+    if (cnt == 0) {
+        return 0M;
+    }
+    return sum / cnt;
+}
+
+return calc_zx_jl(arr, list);

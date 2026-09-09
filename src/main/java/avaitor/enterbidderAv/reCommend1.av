@@ -1,0 +1,46 @@
+## reCommend1
+## 推荐入围规则：固定人数推荐入围（即选择[1, Math.min(指定人数, 剩余人数)]）
+## 参数说明：
+##   SKREIN       : 代理是否手动选择跳过推荐入围
+##   total_person : 指定的推荐入围人数上限
+##   CR           : 当前已生成轮次（仅1轮，0表示尚未开始，1及以上表示已跑过）
+##   IB           : 当前初始化的投标人列表
+##                  若入围轮次详情表数据为空，则为自定义有效投标人列表；
+##                  否则为自定义有效投标人列表与入围轮次详情表中所有已勾选入围投标单位的差集
+
+fn reCommend1(SKREIN, total_person, CR, IB) {
+
+    ## 分支1：代理跳过推荐入围 或 不是第一轮（推荐入围仅1轮）
+    if (SKREIN == true) {
+        let result = seq.map();
+        seq.put(result, "isOpen", false);               ## 本轮不开启
+        seq.put(result, "checkStatus", -1);             ## -1：不可再勾选(已跳过)
+        return result;
+    } else {
+        if (CR != 0){
+            let result = seq.map();
+            seq.put(result, "isOpen", false);               ## 本轮不开启
+            seq.put(result, "checkStatus", -3);             ## -3：可能已勾选足够人数
+            return result;
+        } else {
+            ## 分支2：开启推荐入围本轮
+            ## 可勾选人数 = Math.min(total_person, count(IB))
+            let maxSelectable = count(IB);
+            let checkableCount = total_person < maxSelectable ? total_person : maxSelectable;
+
+            let result = seq.map();
+            seq.put(result, "isOpen", true);                ## 开启本轮
+            seq.put(result, "currentRound", CR + 1);        ## 当前轮次（第一轮=1）
+            seq.put(result, "checkStatus", -2);             ## -2：至少勾选1人
+            seq.put(result, "checkableCount", checkableCount); ## 可勾选人数上限 = Math.min(指定人数, 剩余人数)
+            let IbList = seq.list();
+            for ib_item in IB {
+                seq.add(IbList, seq.map('id', ib_item, 'checked', 0));
+            }
+            seq.put(result, "IbList", IbList);              ## 页面展示推荐入围人列表，全部不打钩
+            return result;
+        }
+    }
+}
+
+return reCommend1(SKREIN, total_person, CR, IB);

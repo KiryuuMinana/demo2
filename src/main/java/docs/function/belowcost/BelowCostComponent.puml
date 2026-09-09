@@ -1,0 +1,47 @@
+@startuml EvalScoreSystemComponents
+
+package "评标APP" {
+  [EvalScoreV2Controller]
+}
+
+package "评标Service" {
+  [EvalScoreV2ServiceImpl]
+  [RowCellDataHandler]
+}
+
+package "gbes-evaluscore-provider" {
+  interface IEvalScoreV2Service
+  [EvalScoreConfigStorage]
+}
+
+package "gbes-evalucalmodel-provider" {
+  [EvaluScorePageConfigServiceImpl]
+}
+
+package "gbes-config-client" {
+  interface RIEvaluScorePageConfigService
+}
+
+package "gbes-config-service" {
+  [EvaluScorePageConfigController]
+}
+
+package "动态表格处理器" {
+  [NumDataHandler]
+  [PersonalClauseDataHandler]
+  [PersonalBidderDataHandler]
+  [OtherDataHandlers]
+}
+
+[EvalScoreV2Controller] --> IEvalScoreV2Service
+[EvalScoreV2ServiceImpl] ..|> IEvalScoreV2Service
+[EvalScoreV2ServiceImpl] --> RowCellDataHandler
+[EvalScoreV2ServiceImpl] --> EvalScoreConfigStorage
+[EvalScoreConfigStorage] --> RIEvaluScorePageConfigService
+[EvaluScorePageConfigController] ..|> RIEvaluScorePageConfigService
+[EvaluScorePageConfigController] --> EvaluScorePageConfigServiceImpl
+[EvaluScorePageConfigServiceImpl] --> [数据库]
+
+[EvalScoreV2ServiceImpl] --> [动态表格处理器]
+
+@enduml

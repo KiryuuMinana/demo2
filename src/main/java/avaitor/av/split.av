@@ -1,0 +1,18 @@
+fn split_dynamic_genarate_regex(AF){
+    let list = string.split(AF,',');
+    let regex = "^";
+    let curC = 0;
+    for key in list{
+        if(curC == 0){
+            regex = regex + key;
+        }
+        else {
+            regex = regex + "|" + key;
+        }
+        curC = curC + 1;
+    }
+    regex = regex + "$";
+    return regex;
+}
+
+return split_dynamic_genarate_regex(AF);

@@ -1,0 +1,72 @@
+## revirewrule eB1(3,15,CR,FB,IB,5,5,5) start
+## revirewrule enterBidder1 start
+## enterBidder1
+## 判断是否开启当前轮次，并返回页面展示所需状态
+## 参数说明：
+##   total_round  : 总轮次数
+##   total_person : 触发轮次的投标人数阈值（即需要满足的最低有效投标人数）
+##   CR           : 当前已生成轮次（不区分入围/推荐入围/候补/递补，从0开始，0表示尚未开始任何轮次）
+##   FB           : 步骤开始时有效投标单位数（用于判断人数是否达到阈值）
+##   IB           : 当前初始化的投标人列表
+##                  若入围轮次详情表数据为空，则为自定义有效投标人列表；
+##                  否则为自定义有效投标人列表与入围轮次详情表中所有已勾选入围投标单位的差集
+##   EB           : 当前因所有原因已经勾选的人数（备用参数，本函数中暂不参与逻辑）
+##   SKREIN       : 代理是否手动选择跳过推荐入围（备用参数，本函数中暂不参与逻辑）
+##   &args        : 可变参数，按轮次索引存储各轮次对应的可勾选人数，args[CR+1] 为下一轮人数
+
+fn eB1(total_round, total_person, CR, FB, IB, &args) {
+
+    ## 分支1：步骤开始时有效投标单位数 < 触发阈值，人数不足
+    if (total_person > FB) {
+
+        ## 非第一轮（CR != 0）：人数不足且已经历过轮次，不再开启新轮，进入推荐入围流程
+        if (CR != 0) {
+            let result = seq.map();
+            seq.put(result, "checkStatus", -1);
+            seq.put(result, "isOpen", false);           ## 本轮不开启
+            return result;
+        } else {
+            ## 第一轮（CR == 0）：人数不足但是第一轮，直接开启，全部打钩且不可再勾选
+            let result = seq.map();
+            seq.put(result, "isOpen", true);            ## 开启本轮
+            seq.put(result, "currentRound", CR + 1);    ## 当前轮次（第一轮=1）
+            seq.put(result, "checkStatus", -1);         ## -1：不可再勾选（全部强制打钩）
+            seq.put(result, "checkableCount", 0);       ## 可勾选人数=0（配合-1标识）
+            let IbList = seq.list();
+            for ib_item in IB {
+                seq.add(IbList, seq.map('id', ib_item, 'checked', 1));
+            }
+            seq.put(result, "IbList", IbList);          ## 页面展示入围人列表（IB是投标人列表，IbList是投标人元素列表）
+            return result;
+        }
+
+    } else {
+        ## 分支2：步骤开始时有效投标单位数 >= 触发阈值，人数充足，开启下一轮（第 CR+1 轮）
+        ## 如果已经是最后一轮，则不开启
+        if (CR == total_round) {
+            let result = seq.map();
+            seq.put(result, "checkStatus", 0);
+            seq.put(result, "isOpen", false);           ## 本轮不开启
+            return result;
+        }
+        ## 从 args 中取出 CR+1 轮次对应的可勾选人数
+        let nextRound = CR + 1;
+        let nextCheckableCount = args[nextRound - 1];
+        let result = seq.map();
+        seq.put(result, "isOpen", true);                ## 开启下一轮
+        seq.put(result, "currentRound", nextRound);     ## 当前展示轮次为 CR+1
+        seq.put(result, "checkStatus", 0);              ## 0：正常可勾选状态
+        seq.put(result, "checkableCount", nextCheckableCount); ## 从 args 取得的本轮可勾选人数
+        let IbList = seq.list();
+        for ib_item in IB {
+            seq.add(IbList, seq.map('id', ib_item, 'checked', 0));
+        }
+        seq.put(result, "IbList", IbList);          ## 页面展示入围人列表（IB是投标人列表，IbList是投标人元素列表）
+        return result;
+    }
+}
+
+eB1(total_round, total_person, CR, FB, IB, args);
+## revirewrule enterBidder1 end
+return eB1(3,15,CR,FB,IB,5,5,5);
+## revirewrule eB1(3,15,CR,FB,IB,5,5,5) end

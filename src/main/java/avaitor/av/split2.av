@@ -1,0 +1,13 @@
+fn split_dynamic_genarate_regex(AF,A2){
+    let list = string.split(AF,',');
+    let b = false;
+    for key in list{
+        if(decimal(key) == A2){
+            b = true;
+            break;
+        }
+    }
+    return b;
+}
+p(split_dynamic_genarate_regex("0.85,0.8,0.1,0.77",0.77));
+return split_dynamic_genarate_regex(AF,A2);

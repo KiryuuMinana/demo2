@@ -1,0 +1,57 @@
+@startuml
+actor 前端 as Frontend
+participant "接口一\n(返回评标报告)" as API1
+participant "接口二\n(查询报表列表)" as API2
+participant "数据库" as Database
+participant "内部方法\n(生成PDF)" as InternalMethod
+participant "报表组件\n(远程服务)" as ReportService
+
+Frontend -> API2: 查询报表列表
+API2 -> Database: 查询汇总报表列表
+Database --> API2: 返回汇总列表
+API2 -> Database: 查询个人报表列表
+Database --> API2: 返回个人列表
+API2 --> Frontend: 返回汇总+个人报表列表
+
+group 接口一调用场景 [非打印模式]
+Frontend -> API1: 请求评标报告(类型,非打印)
+alt 是汇总报告
+    API1 -> Database: 按名称查询已存在PDF
+    Database --> API1: 返回查询结果
+    alt PDF已存在
+        API1 --> Frontend: 返回已有文件ID
+    else PDF不存在
+        API1 -> InternalMethod: 调用生成PDF(非打印)
+        InternalMethod -> ReportService: 生成PDF文件
+        ReportService --> InternalMethod: 返回文件ID
+        InternalMethod -> Database: 存储PDF信息
+        Database --> InternalMethod: 确认存储
+        InternalMethod --> API1: 返回文件ID
+        API1 --> Frontend: 返回新生成文件ID
+    end
+else 是个人报告
+    API1 -> Database: 按名称查询已存在PDF
+    Database --> API1: 返回查询结果
+    alt PDF已存在
+        API1 --> Frontend: 返回已有文件ID
+    else PDF不存在
+        API1 -> InternalMethod: 调用生成PDF(非打印)
+        InternalMethod -> ReportService: 生成PDF文件
+        ReportService --> InternalMethod: 返回文件ID
+        InternalMethod -> Database: 存储PDF信息
+        Database --> InternalMethod: 确认存储
+        InternalMethod --> API1: 返回文件ID
+        API1 --> Frontend: 返回新生成文件ID
+    end
+end
+end
+
+group 接口一调用场景 [打印模式]
+Frontend -> API1: 请求评标报告(类型+reportIds,打印)
+API1 -> InternalMethod: 调用生成PDF(打印)
+InternalMethod -> ReportService: 生成PDF文件
+ReportService --> InternalMethod: 返回文件ID
+InternalMethod --> API1: 返回文件ID
+API1 --> Frontend: 返回文件ID(不入库)
+end
+@enduml

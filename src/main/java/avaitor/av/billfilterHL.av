@@ -1,0 +1,81 @@
+fn filterHL(arr, x, y) {
+    let list = seq.list();
+    let min = x;
+    let max = y;
+    let num = count(arr);
+    arr = sort(arr, comparator(lambda(x, y) -> decimal(x.price) > decimal(y.price) end));
+    for i in range(0,num){
+        if(i == x - 1){
+            beforeMinPrice = arr[x - 1];
+            minPrice = arr[x];
+            afterMinPrice = arr[i];
+            minCount = x - 2;
+            if(minCount >= 0){
+                afterMinPrice = arr[minCount];
+            }else{
+                minCount = 0;
+            }
+            if(beforeMinPrice.price != afterMinPrice.price && beforeMinPrice.price == minPrice.price){
+                min = i;
+            }
+            if(beforeMinPrice.price == afterMinPrice.price && beforeMinPrice.price == minPrice.price){
+                min = minCount;
+            }
+            if(beforeMinPrice.price != afterMinPrice.price && beforeMinPrice.price != minPrice.price){
+                min = x;
+            }
+        }
+        if(i == num - y){
+            beforeMaxPrice = arr[num - y - 1];
+            maxPrice = arr[num - y];
+            afterMaxPrice = arr[i];
+            maxCount = num - y + 1;
+            if(maxCount <= num - y){
+                afterMaxPrice = arr[maxCount];
+            }
+            if (beforeMaxPrice.price != afterMaxPrice.price && beforeMaxPrice.price != maxPrice.price){
+              max = num - y;
+            }
+            if (beforeMaxPrice.price != afterMaxPrice.price && beforeMaxPrice.price == maxPrice.price){
+                 max = i - 1;
+            }
+            if(beforeMaxPrice.price == afterMaxPrice.price && beforeMaxPrice.price == maxPrice.price){
+                max = num - y + 1;
+            }
+        }
+    }
+    for i in range(min, max){
+        seq.add(list,arr[i]);
+    }
+    return list;
+}
+fn bill_filterHL(arr, x, y){
+    arr = sort(arr, comparator(lambda(x, y) -> x.billId < y.billId end));
+    let filterList = seq.list();
+    let resultList = seq.list();
+    let billId = nil;
+    let num = count(arr);
+    for i in range(0, num){
+        arg = arr[i];
+        if(arg.price == nil){
+            continue;
+        }
+        if(billId == nil){
+            billId = arg.billId;
+        }
+        ##p(arg);
+        if(billId != arg.billId){
+            seq.add_all(resultList, filterHL(filterList, x, y));
+            billId = arg.billId;
+            filterList = seq.list();
+            seq.add(filterList, arg);
+        }elsif(i == (num - 1)){
+            ##p("last");
+            seq.add(filterList, arg);
+            seq.add_all(resultList,filterHL(filterList, x, y));
+        }else{
+            seq.add(filterList, arg);
+        }
+    } return resultList;
+}
+return bill_filterHL(arr, x, y);

@@ -1,0 +1,30 @@
+fn generateE2Regex(E1){
+    if (E1 == nil || string.length(str(E1)) == 0 || type(E1) == "function") {
+        return "^([0-9]?(\\.\\d{1,2})?|10(\\.0{1,2})?)$";
+    }
+    let e = double(E1)*100;
+    let integerPart = bigint(e/100);
+    let decimalPart = math.round(e - integerPart*100);
+    let regex = ""; if (integerPart > 0) {
+        regex = regex + "[0-" + (integerPart - 1) + "](\\.\\d{1,2})?";
+    }
+    if (decimalPart > 0) {
+        if (string.length(regex) > 0) {
+            regex = regex + "|";
+        }
+        regex = regex + integerPart + "(\\.";
+        let tens = bigint(decimalPart/10);
+        let hundredths = math.round(decimalPart-tens*10);
+        if (tens == 0 && hundredths > 0) {
+            regex = regex + "0[0-" + (hundredths - 1) + "]?)?";
+        } else {
+            regex = regex + "([0-" + (tens - 1) + "]\\d?";
+            if (hundredths > 0) {
+                regex = regex + "|" + tens + "[0-" + (hundredths - 1) + "]?";
+            } regex = regex + "))?";
+        }
+    }
+    regex = "^(" + regex + ")$"; return regex;
+}
+
+return generateE2Regex(E1);

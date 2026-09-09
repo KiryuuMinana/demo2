@@ -1,0 +1,41 @@
+@startuml GetCreditDualFormSequenceDiagram
+
+actor "前端客户端" as Client
+participant "CreditDualFormController" as Controller
+participant "CreditDualFormServiceImpl" as Service
+participant "IEvalBidderInvalidService" as InvalidService
+participant "IEvalBidderService" as BidderService
+participant "IEvalBidderExtendService" as ExtendService
+participant "IEvalUnionService" as UnionService
+participant "JSON处理" as JSON
+
+Client -> Controller: POST /getCreditDualFormBidderInfo\n(GetCreditDualDTO)
+Controller -> Service: getCreditDualFormBidderInfo(bidSectionId)
+
+Service -> InvalidService: 查询废标记录
+InvalidService --> Service: List<EvalBidderInvalid>
+
+Service -> BidderService: 查询有效投标单位
+BidderService --> Service: List<EvalBidder>
+
+Service -> ExtendService: 查询evalJson扩展信息
+ExtendService --> Service: Map<String, String>
+
+Service -> UnionService: 查询联合体信息(如果存在)
+UnionService --> Service: Map<String, List<EvalUnion>>
+
+loop 处理每个投标单位
+    Service -> Service: 构造CreditDualFormBidderVO
+    Service -> JSON: 解析JSON数据
+    JSON --> Service: 信用双表信息
+
+    loop 处理每个信用双表条目
+        Service -> Service: 构造EnterpriseVO
+        Service -> Service: 添加到列表
+    end
+end
+
+Service --> Controller: List<CreditDualFormBidderVO>
+Controller --> Client: Result<List<CreditDualFormBidderVO>>
+
+@enduml

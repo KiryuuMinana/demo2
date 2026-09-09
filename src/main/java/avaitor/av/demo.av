@@ -1,0 +1,55 @@
+## examples/filterEPn.av
+
+fn filterEPn(PL, isFilter, EPn, MBPL) {
+    if (isFilter == false) {
+        return EPn;
+    }
+    if (MBPL == nil) {
+        return EPn;
+    }
+    SEPn = seq.list();
+    let isEpn = false;
+    let epnMap = seq.map();
+
+    for key in EPn{
+        seq.put(epnMap,key.id,key);
+    }
+
+    let isOpen = false;
+    for key in PL{
+        if(key.requestSystemSource != nil && key.requestSystemSource == 0){
+            isOpen = true;
+            let epn = seq.get(epnMap,key.id);
+            if(epn != nil){
+                seq.add(SEPn,epn)
+            }
+        }
+    }
+    if(isOpen == true){
+        return SEPn;
+    }
+
+    for key in PL{
+        let epn = seq.get(epnMap,key.id);
+        if (key.price == nil){
+            isEpn = true;
+            if (epn != nil && epn.price <= MBPL){
+                        seq.add(SEPn,epn);
+            }
+        }
+    }
+    if (isEpn == false){
+        for key in PL{
+            if (key.price <= MBPL){
+                let epn = seq.get(epnMap,key.id);
+                if(epn != nil){
+                    seq.add(SEPn,epn)
+                }
+            }
+        }
+    }
+
+    return SEPn;
+}
+
+return filterEPn(PL, isFilter, EPn, MBPL);

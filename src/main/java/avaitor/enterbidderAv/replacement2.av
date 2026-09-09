@@ -1,0 +1,17 @@
+fn replacement2(CR, IB) {
+
+    let checkableCount = count(IB);             ## 可勾选人数 = IB列表总人数（即剩余全部）
+
+    let result = seq.map();
+    seq.put(result, "isOpen", true);                ## 开启本轮
+    seq.put(result, "currentRound", CR + 1);        ## 当前轮次（第一轮=1）
+    seq.put(result, "checkStatus", -2);             ## -2：至少勾选1人
+    seq.put(result, "checkableCount", checkableCount); ## 可勾选人数上限 = 剩余人数
+    let IbList = seq.list();
+    for ib_item in IB {
+        seq.add(IbList, seq.map('id', ib_item, 'checked', 0));
+    }
+    seq.put(result, "IbList", IbList);              ## 页面展示候补人列表，全部不打钩
+    return result;
+
+}

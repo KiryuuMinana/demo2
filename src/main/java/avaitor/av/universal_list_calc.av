@@ -1,0 +1,30 @@
+## H001-01-30
+fn universal_list_calc(list , operate , &args){
+    let resList = seq.list();
+    for key in list{
+        for arg in args{
+            if (operate == 1){
+                key.price = key.price + arg;
+            } elsif (operate == 2){
+                key.price = key.price - arg;
+            } elsif (operate == 3){
+                key.price = key.price * arg;
+            } elsif (operate == 4){
+                key.price = key.price / arg;
+            } elsif (operate == 5){
+                key.price = key.price % arg;
+            }
+        }
+        seq.add(resList,key);
+    }
+##    p(resList);
+    return resList;
+}
+
+##universal_list_calc(list, operate, 700, 2200);
+p(seq.get(universal_list_calc(seq.list(seq.map("price",6735)), operate, 700, 2200),0));
+p(type(seq.get(universal_list_calc(seq.list(seq.map("price",6735)), operate, 700, 2200),0)));
+##seq.get(seq.get(universal_list_calc(seq.list(seq.map("price",6735)), operate, 700, 2200),0),"price");
+p(seq.get(seq.get(universal_list_calc(seq.list(seq.map("price",6735)), operate, 700, 2200),0),"price"));
+p(seq.get(seq.get(universal_list_calc(seq.list(seq.map("price",0M)), operate, 700, 2200,800,900),0),"price"));
+return (seq.get(seq.get(universal_list_calc(seq.list(seq.map("price",0M)), operate, 700, 2200,800,900),0),"price")); ## 这样就可以返回单独的一个值了

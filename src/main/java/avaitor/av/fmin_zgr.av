@@ -1,0 +1,26 @@
+## examples/min.av
+
+use com.echola.test.AlgorithmFMinIndexOutOfBoundException;
+
+fn f_min(arr, x) {
+  if is_empty(arr) {
+    return 0M;
+  }
+  let minIndex = 0;
+  if x > 0 {
+     minIndex = x - 1;
+  }
+  num_arr = seq.list();
+  for key in arr {
+    seq.add(num_arr,key.price);
+  }
+  num_arr = distinct(num_arr);
+  if count(num_arr) < x {
+    throw new AlgorithmFMinIndexOutOfBoundException(x);
+  }
+  num_arr = sort(num_arr, comparator(lambda(x, y) -> x < y end));
+  minValue = num_arr[minIndex];
+  return minValue;
+}
+
+return f_min(arr, x);

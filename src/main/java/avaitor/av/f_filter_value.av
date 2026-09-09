@@ -1,0 +1,11 @@
+fn f_filter_value(value, list) {
+    p(list);
+    for key in list {
+        if value == key.price {
+            seq.remove(list, key); break;
+        }
+    }
+    return list;
+}
+
+return f_filter_value(value, list);

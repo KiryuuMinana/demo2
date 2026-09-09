@@ -1,0 +1,72 @@
+fn bill_score_sum_2(subQS, BillCP) {
+    p("bill_score_sum ");
+
+    let processedQS = seq.list();
+    for item in subQS {
+        let processedItem = seq.map(
+            "billId", item.billId,
+            "price", decimal(item.price)
+        );
+        ## 从BillCP里拿出id为processedItem.billId的price的值进行比较
+        let tempPrice = nil;
+        for bill in BillCP {
+            let id = seq.get(bill,"id");
+            if (id == processedItem.billId) {
+                tempPrice = decimal(seq.get(bill, "price"));
+                break;
+            }
+        }
+        if (tempPrice != nil && processedItem.price < tempPrice){
+            seq.add(processedQS, processedItem);
+        }
+    }
+
+    let qsMap = group_by(processedQS, lambda(arg) -> arg.billId end);
+    let result = seq.list();
+
+    let keys = seq.keys(qsMap);
+    for billId in keys {
+        let scores = seq.get(qsMap, billId);
+        let priceList = seq.list();
+        for score in scores {
+            seq.add(priceList, score.price);
+        }
+
+        let bidderCount = count(priceList);
+##        p("=====");
+##        p(bidderCount);
+##        p("=====");
+        let finalPrice = 0;
+
+        if (bidderCount <= 7) {
+            for price in priceList {
+                finalPrice = finalPrice + price;
+            }
+        } else {
+            let c = comparator(lambda(x, y) -> x < y end);
+            priceList = sort(priceList,c);
+            p("------------");
+            p(priceList);
+            p("------------");
+            let trimmedPrices = seq.list();
+            let len = count(priceList);
+            let indices = range(2, len - 2);
+            for i in indices {
+                seq.add(trimmedPrices, seq.get(priceList, i));
+            }
+            for price in trimmedPrices {
+                finalPrice = finalPrice + price;
+            }
+        }
+
+        if (bidderCount > 7) {
+            bidderCount = bidderCount - 4;
+        }
+
+        seq.add(result, seq.map("billId", billId, "price", finalPrice, "bidderCount", bidderCount));
+    }
+
+    return result;
+}
+
+return bill_score_sum_2(SPEP, BillCP);

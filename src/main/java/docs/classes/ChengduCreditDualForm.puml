@@ -1,0 +1,81 @@
+@startuml CreditDualFormClassDiagram
+
+' 控制层
+class CreditDualFormController {
+  - ICreditDualFormService creditDualFormService
+  + getCreditDualFormBidderInfo(GetCreditDualDTO) : Result<List<CreditDualFormBidderVO>>
+  + getEnterpriseDetail(GetEnterpriseDetailDTO) : Result<EnterpriseDetailVO>
+}
+
+' 服务接口层
+interface ICreditDualFormService {
+  + getCreditDualFormBidderInfo(String) : List<CreditDualFormBidderVO>
+  + getEnterpriseDetail(GetEnterpriseDetailDTO) : EnterpriseDetailVO
+}
+
+' 服务实现层
+class CreditDualFormServiceImpl {
+  - IEvalBidderInvalidService evalBidderInvalidService
+  - IEvalBidderService evalBidderService
+  - IEvalBidderExtendService evalBidderExtendService
+  - IEvalUnionService evalUnionService
+  + getCreditDualFormBidderInfo(String) : List<CreditDualFormBidderVO>
+  + getEnterpriseDetail(GetEnterpriseDetailDTO) : EnterpriseDetailVO
+}
+
+' DTO类
+class GetCreditDualDTO {
+  - String bidSectionId
+}
+
+class GetEnterpriseDetailDTO {
+  - String uniqueId
+  - String bidSectionId
+  - String bidderId
+  - Boolean checkUnion
+}
+
+' VO类
+class CreditDualFormBidderVO {
+  - String bidderName
+  - String bidderId
+  - List<EnterpriseVO> enterpriseVOList
+}
+
+class EnterpriseVO {
+  - Boolean checkUnion
+  - String uniqueId
+}
+
+class EnterpriseDetailVO {
+  - String personName
+  - String idCard
+  - String enterpriseSupervisionStatus
+  - String bidderCode
+  - String uniqueId
+  - String enterpriseName
+}
+
+' 依赖注入关系
+CreditDualFormController --> ICreditDualFormService
+CreditDualFormServiceImpl .up.|> ICreditDualFormService
+
+' 依赖关系
+CreditDualFormController --> GetCreditDualDTO
+CreditDualFormController --> GetEnterpriseDetailDTO
+CreditDualFormController --> CreditDualFormBidderVO
+CreditDualFormController --> EnterpriseDetailVO
+
+ICreditDualFormService --> CreditDualFormBidderVO
+ICreditDualFormService --> EnterpriseDetailVO
+ICreditDualFormService --> GetEnterpriseDetailDTO
+
+CreditDualFormBidderVO --> EnterpriseVO
+
+' 服务依赖关系
+CreditDualFormServiceImpl --> IEvalBidderInvalidService
+CreditDualFormServiceImpl --> IEvalBidderService
+CreditDualFormServiceImpl --> IEvalBidderExtendService
+CreditDualFormServiceImpl --> IEvalUnionService
+
+@enduml

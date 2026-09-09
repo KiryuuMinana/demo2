@@ -1,0 +1,401 @@
+# GbesDeUnzipFileOperation  2023.12.21 更新前备份：
+
+package com.glodon.gboat3.gfc.ex.serve.operation.impl;
+
+import com.glodon.gboat3.base.tools.util.cache.RedisUtil;
+import com.glodon.gboat3.base.tools.util.json.JsonUtil;
+import com.glodon.gboat3.gfc.base.enums.FileStatus;
+import com.glodon.gboat3.gfc.base.ex.GfcDefaultException;
+import com.glodon.gboat3.gfc.base.ex.GfcInvalidParamExcpetion;
+import com.glodon.gboat3.gfc.base.ex.GfcNoFileException;
+import com.glodon.gboat3.gfc.base.ex.GfcNoNamespaceException;
+import com.glodon.gboat3.gfc.base.io.CommonUploadStream;
+import com.glodon.gboat3.gfc.base.io.FileDownloadStream;
+import com.glodon.gboat3.gfc.base.io.FileUploadInfo;
+import com.glodon.gboat3.gfc.base.model.GfcFileInfo;
+import com.glodon.gboat3.gfc.base.model.GfcNamespace;
+import com.glodon.gboat3.gfc.base.service.IFileSystemService;
+import com.glodon.gboat3.gfc.base.utils.ContentTypeUtils;
+import com.glodon.gboat3.gfc.base.utils.FileSystemUtils;
+import com.glodon.gboat3.gfc.base.utils.FilenameUtils;
+import com.glodon.gboat3.gfc.ex.serve.io.GbesAesDecryptInputStream;
+import com.glodon.gboat3.gfc.ex.serve.io.StabledInputStream;
+import com.glodon.gboat3.gfc.ex.serve.operation.BaseFileOperation;
+import com.glodon.gboat3.gfc.ex.serve.operation.IProgressListener;
+import com.glodon.gboat3.gfc.ex.serve.operation.bo.ZipFileStreamBO;
+import com.glodon.gboat3.gfc.ex.serve.utils.ResultObjectExUtils;
+import com.glodon.gboat3.gfc.ex.serve.vo.DecompressFileInfoVo;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.text.MessageFormat;
+import java.util.*;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+
+/**
+ * 解密解压文件操作（线程安全）
+ *
+ * @author fucy
+ * @date 2022/02/10 15:39
+ * @since JDK1.8
+ */
+@Component
+@Slf4j
+public class GbesDeUnzipFileOperation extends BaseFileOperation {
+
+	private static final Charset ZIP_GBK = Charset.forName("GBK");
+	private static final String OPERATION_EN_UNZIP = "GBES_DE_UNZIP";
+
+	@Autowired
+	private RedisUtil redisUtil;
+
+	@Override
+	public String getOperationType() {
+		return OPERATION_EN_UNZIP;
+	}
+
+	/**
+	 * 文件操作
+	 *
+	 * @param jsonData
+	 * @return
+	 */
+	@Override
+	public String operate(String jsonData) {
+		Map<String, String> data = JsonUtil.json2Map(jsonData, String.class, String.class);
+		String fileId = data.get("fileId");
+		String key = data.get("key");
+		final String progressKey = data.get("progressKey");
+
+		// 验证
+		if (StringUtils.isEmpty(fileId)) {
+			throw new GfcInvalidParamExcpetion("[fileId]不能为空");
+		}
+
+		// 文件信息
+		GfcFileInfo fileInfo = getFileInfo(fileId);
+
+		// 验证
+		if (fileInfo==null || !FileStatus.NORMAL.equals(fileInfo.getFileStatus())) {
+			throw new GfcNoFileException(MessageFormat.format("fileId[{0}]操作文件不存在或已删除", fileId));
+		}
+
+		// 文件所在命名空间
+		GfcNamespace fileNs = getNamespaceForFile(fileInfo.getNamespaceId());
+
+		if (fileNs==null) {
+			throw new GfcNoNamespaceException(MessageFormat.format("fileId[{0}]操作文件的命名空间不存在", fileId));
+		}
+
+		// 获取当前访问用户的命名空间
+		GfcNamespace userNs = getNamespaceForUser();
+
+		IFileSystemService fileSystemService = FileSystemUtils.getFileSystemService(fileNs.getStorageType());
+
+		IProgressListener listener = null;
+
+		if (StringUtils.isNotEmpty(progressKey) && redisUtil!=null) {
+			// 设置进度监听器
+			listener = new IProgressListener() {
+				@Override
+				public void progress(long finished, long total) {
+					long progress = Math.floorDiv(finished*100, total);
+
+					redisUtil.setEx(DeUnzipProgressOperation.OPERATION_PROGRESS_KEY + ":" + progressKey, progress + "%", 12*60*60*1000);
+				}
+			};
+		}
+
+		// 封装响应对象
+		List<Map<String, String>> resultMapList = new ArrayList<>();
+		if (StringUtils.isNotEmpty(key)) {
+			GbesAesDecryptInputStream gis = null;
+			// 创建具备解压和解密的输入流
+			try {
+				FileDownloadStream downloadStream = fileSystemService.openDownloadStream(fileInfo.getFileUuid());
+				// 解密流需要添加稳定流封装，确保解密时读取的块大小
+				gis = new GbesAesDecryptInputStream(new StabledInputStream(downloadStream.getInputStream()), downloadStream.getFileSize(), key, null);
+				String newFileName = StringUtils.removeEndIgnoreCase(fileInfo.getFileName(),".enc") + ".zip";
+				// 文件上传
+				FileUploadInfo uploadInfo = fileSystemService.uploadFile(CommonUploadStream.newUploadStream(gis),
+						newFileName, -1, ContentTypeUtils.getContentType(newFileName), userNs.getDigestType());
+				// 创建文件信息
+				GfcFileInfo newFileInfo = uploadInfo.buildFileInfo();
+				newFileInfo.setNamespaceId(userNs.getId());
+				saveFileInfo(newFileInfo);
+
+				Map<String, String> resultMap = new HashMap<>();
+				resultMap.put("fileId", newFileInfo.getId());
+				resultMap.put("filePath", newFileName);
+				resultMapList.add(resultMap);
+			} catch(Exception e) {
+				String errorMsg = MessageFormat.format("文件操作[AES解密]失败，失败信息[{0}]", e.getMessage());
+				throw new GfcDefaultException(ResultObjectExUtils.CODE_ERROR_EX_AES_DECRYPT_FAILED, errorMsg, e);
+			} finally {
+				if (gis != null) {
+					try {
+						gis.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+
+		ZipInputStream zis = null;
+
+		// 创建具备解压和解密的输入流
+		try {
+			FileDownloadStream downloadStream = fileSystemService.openDownloadStream(fileInfo.getFileUuid());
+
+//			if (StringUtils.isNotEmpty(key)) {
+//				// 解密流需要添加稳定流封装，确保解密时读取的块大小
+//				zis = new ZipInputStream(new GbesAesDecryptInputStream(new StabledInputStream(downloadStream.getInputStream()), downloadStream.getFileSize(), key, listener), ZIP_GBK);
+//			} else {
+//				zis = new ZipInputStream(downloadStream.getInputStream(), ZIP_GBK);
+//			}
+
+			// 解压
+			List<DecompressFileInfoVo> fileInfoVos = unzip(downloadStream, userNs, "/" , key , listener);
+
+			for (DecompressFileInfoVo fileInfoVo : fileInfoVos) {
+				Map<String, String> resultMap = new HashMap<>();
+
+				resultMap.put("fileId", fileInfoVo.getFileId());
+				resultMap.put("filePath", fileInfoVo.getFilePath());
+
+				resultMapList.add(resultMap);
+			}
+		} catch (Exception e) {
+			String errorMsg = MessageFormat.format("文件操作[AES解密-ZIP解压]失败，失败信息[{0}]", e.getMessage());
+
+			throw new GfcDefaultException(ResultObjectExUtils.CODE_ERROR_EX_AES_DECRYPT_UNZIP_FAILED, errorMsg, e);
+		} finally {
+			if (zis!=null) {
+				try {
+					zis.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return JsonUtil.object2Json(resultMapList);
+	}
+
+	/**
+	 * 文件递归解压
+	 *
+	 * @param ds
+	 * @param namespace
+	 * @param prePath 路径前缀
+	 * @return
+	 */
+	private List<DecompressFileInfoVo> unzip(FileDownloadStream ds, GfcNamespace namespace, String prePath , String key , IProgressListener listener) throws IOException {
+		log.info("[namespace = " + namespace + ",key = " + key + "]");
+
+		List<DecompressFileInfoVo> fileInfoVos = new ArrayList<>();
+		IFileSystemService fileSystemService = FileSystemUtils.getFileSystemService(namespace.getStorageType());
+
+		log.info("namespace.getStorageType() = " + namespace.getStorageType());
+		Queue<Map<String,String>> needUnZipFileQueue = new LinkedList<>();
+		ZipInputStream zis = null;
+		InputStream is = ds.getInputStream();
+		ZipFileStreamBO zipFile = isZipFile(is);
+		InputStream newIs = zipFile.getNewIs();
+
+		// 不加密文件才在最外层判断是否为zip文件
+		if (StringUtils.isEmpty(key)) {
+			if (!zipFile.getIsZipFile()) {
+				log.error("不能解压非法的ZIP文件");
+				throw new IllegalArgumentException("不能解压非法的ZIP文件");
+			}
+		}
+
+		log.info("当前要处理的是ZIP文件");
+		if (StringUtils.isNotEmpty(key)) {
+			// 解密流需要添加稳定流封装，确保解密时读取的块大小
+			zis = new ZipInputStream(new GbesAesDecryptInputStream(new StabledInputStream(newIs), ds.getFileSize(), key, listener), ZIP_GBK);
+		} else {
+			zis = new ZipInputStream(newIs, ZIP_GBK);
+		}
+
+		ZipEntry entry = null;
+
+		while((entry = zis.getNextEntry())!=null) {
+			if (!entry.isDirectory()) {
+				log.info("===============当前处理的entry是：" + entry.getName() + "=============");
+				String fileName = entry.getName();
+				String contentType = ContentTypeUtils.getContentType(fileName);
+				String newFileName = FilenameUtils.getName(fileName);
+				log.info("当前要上传的文件大小是：【" + entry.getSize() + "】，当前要上传的文件" +
+						"fileName=【" + fileName + "】，当前要上传的文件的" +
+						"newFileName=【" + newFileName + "】=============");
+				// 文件上传
+				FileUploadInfo uploadInfo = fileSystemService.uploadFile(CommonUploadStream.newUploadStream(zis),
+						newFileName, entry.getSize(), contentType, namespace.getDigestType());
+
+				// 创建文件信息
+				GfcFileInfo newFileInfo = uploadInfo.buildFileInfo();
+				newFileInfo.setNamespaceId(namespace.getId());
+				saveFileInfo(newFileInfo);
+
+				DecompressFileInfoVo fileInfoVo = new DecompressFileInfoVo();
+				fileInfoVo.setFileId(newFileInfo.getId());
+				fileInfoVo.setFilePath(buildFileName(prePath, entry.getName()));
+
+				fileInfoVos.add(fileInfoVo);
+				if (StringUtils.endsWith(fileName, ".zip")) {
+					// 如果压缩包，加入到队列中，递归解压
+					// 目录结构连接外层压缩包目录
+					String zipPrePath = buildFileName(prePath, entry.getName());
+					zipPrePath = StringUtils.appendIfMissing(zipPrePath, "/");
+
+					Map<String,String> needUnZipFileInfo = new HashMap<>();
+					needUnZipFileInfo.put("fileId" , fileInfoVo.getFileId());
+					needUnZipFileInfo.put("zipPrePath",zipPrePath);
+					log.info("将需要解压的子zip添加到队列中，[fileId=" + fileInfoVo.getFileId() + ";zipPrePath=" + zipPrePath + "]");
+					needUnZipFileQueue.offer(needUnZipFileInfo);
+				}
+
+			}
+		}
+		zis.closeEntry();
+		ZipInputStream subZis = null;
+		while (!needUnZipFileQueue.isEmpty()){
+			Map<String, String> pollFileInfo = needUnZipFileQueue.poll();
+			String fileId = pollFileInfo.get("fileId");
+			String rootPrePath = pollFileInfo.get("zipPrePath");
+
+			log.info("准备downloadStream，当前处理的zip[fileId=" + fileId + ",它当前的rootPrePath = [ " + rootPrePath +",它当前的真实uuid="+getFileInfo(fileId).getFileUuid()+"]");
+			FileDownloadStream downloadStream = fileSystemService.openDownloadStream(getFileInfo(fileId).getFileUuid());
+			log.info("已经成功拿到downloadStream，开始解压内部zip，当前处理的zip[fileId=" + fileId + "]");
+
+			String subPrePath = "";
+
+			try {
+				InputStream inputStream = downloadStream.getInputStream();
+				zipFile = isZipFile(inputStream);
+				InputStream newInputStream = zipFile.getNewIs();
+				if (!zipFile.getIsZipFile()) {
+					log.error("不能解压非法的ZIP子文件");
+					throw new IllegalArgumentException("不能解压非法的ZIP文件");
+				}
+				log.info("当前要处理的是ZIP子文件");
+				if (StringUtils.isNotEmpty(key)) {
+					// 解密流需要添加稳定流封装，确保解密时读取的块大小
+					subZis = new ZipInputStream(new GbesAesDecryptInputStream(new StabledInputStream(newInputStream), downloadStream.getFileSize(), key, listener), ZIP_GBK);
+				} else {
+					subZis = new ZipInputStream(newInputStream, ZIP_GBK);
+				}
+			}catch (Exception e){
+				log.error("当前要处理的是ZIP子文件");
+				throw new IllegalArgumentException("不能解压非法的ZIP文件");
+			}
+
+			// 解压
+			while((entry = subZis.getNextEntry())!=null) {
+				if (!entry.isDirectory()) {
+					log.info("===============当前处理的zip内部的子entry是：" + entry.getName() + "=============");
+					String fileName = entry.getName();
+					String contentType = ContentTypeUtils.getContentType(fileName);
+					String newFileName = FilenameUtils.getName(fileName);
+					log.info("当前要上传的文件大小是：【" + entry.getSize() + "】，当前要上传的文件" +
+							"fileName=【" + fileName + "】，当前要上传的文件的" +
+							"newFileName=【" + newFileName + "】=============");
+					// 文件上传
+					FileUploadInfo uploadInfo = fileSystemService.uploadFile(CommonUploadStream.newUploadStream(subZis),
+							newFileName, entry.getSize(), contentType, namespace.getDigestType());
+
+					// 创建文件信息
+					GfcFileInfo newFileInfo = uploadInfo.buildFileInfo();
+					newFileInfo.setNamespaceId(namespace.getId());
+					saveFileInfo(newFileInfo);
+
+					DecompressFileInfoVo fileInfoVo = new DecompressFileInfoVo();
+					fileInfoVo.setFileId(newFileInfo.getId());
+					fileInfoVo.setFilePath(buildFileName(rootPrePath + subPrePath, entry.getName()));
+
+					fileInfoVos.add(fileInfoVo);
+					if (StringUtils.endsWith(fileName, ".zip")) {
+						// 如果压缩包，加入到队列中，递归解压
+						// 目录结构连接外层压缩包目录
+						String zipPrePath = buildFileName(subPrePath, entry.getName());
+						zipPrePath = StringUtils.appendIfMissing(zipPrePath, "/");
+
+						Map<String,String> needUnZipFileInfo = new HashMap<>();
+						needUnZipFileInfo.put("fileId" , fileInfoVo.getFileId());
+						needUnZipFileInfo.put("zipPrePath",rootPrePath + zipPrePath);
+						needUnZipFileQueue.offer(needUnZipFileInfo);
+					}
+				}
+			}
+		}
+
+		return fileInfoVos;
+	}
+
+	/**
+	 * 检查zip文件有效性
+	 * @param is 文件输入流，不能传ZIP输入流
+	 * @return
+	 */
+	public ZipFileStreamBO isZipFile(InputStream is) {
+		try{
+			// 将 InputStream 输入流打包成 BufferedInputStream
+			BufferedInputStream bfi = new BufferedInputStream(is);
+			bfi.mark(Integer.MAX_VALUE);
+
+			// 创建一个新的输入流，包装字节数组
+			byte[] content = IOUtils.toByteArray(bfi);
+			InputStream newIs = new ByteArrayInputStream(content);
+			bfi.reset();
+
+			// 读取前两个字节进行验证
+			byte[] magicBytes = new byte[2];
+			int bytesRead = bfi.read(magicBytes);
+
+			// 检查文件的前两个字节是否是"PK"，表示ZIP文件
+			Boolean isZip = bytesRead == 2 && magicBytes[0] == 0x50 && magicBytes[1] == 0x4B;
+
+			// 使用新的输入流进行后续的操作
+			return ZipFileStreamBO.builder()
+					.isZipFile(isZip)
+					.newIs(newIs)
+					.build();
+		} catch (IOException e) {
+			log.error(e.getMessage());
+		}
+		return null;
+	}
+
+	/**
+	 * 构建文件名
+	 *
+	 * @param basePath
+	 * @param entryName
+	 * @return
+	 */
+	private String buildFileName(String basePath, String entryName) {
+		StringBuilder fileFullName = new StringBuilder(basePath);
+
+		if (!StringUtils.endsWith(basePath, "/")) {
+			fileFullName.append("/");
+		}
+
+		String fileName = StringUtils.removeStart(entryName, "/");
+		fileName = StringUtils.removeEnd(fileName, "/");
+
+		fileFullName.append(fileName);
+
+		return fileFullName.toString();
+	}
+}

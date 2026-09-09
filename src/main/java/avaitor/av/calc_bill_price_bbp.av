@@ -1,0 +1,26 @@
+## BBP=Ct×50%+（Cx×50%+Cz×50%）×50%
+## 入参出参均为List<Map<String, Decimal>>
+fn calc_bill_price_bbp(Ct, Cx, Cz){
+    let result = seq.list();
+    let cx_map = seq.map();
+    let cz_map = seq.map();
+    for cx_item in Cx {
+        seq.put(cx_map, cx_item.id, cx_item.price);
+    }
+    for cz_item in Cz {
+        seq.put(cz_map, cz_item.id, cz_item.price);
+    }
+    ## 使用局部变量缓存0.5，避免重复计算，从而提高性能，使其应用于十万级计算
+    let half = 0.5;
+    for ct_item in Ct {
+        let id = ct_item.billId;
+        let ct_price = ct_item.avgPrice;
+        let cx_price = seq.get(cx_map, id);
+        let cz_price = seq.get(cz_map, id);
+        let bbp_price = half * (ct_price + half * (cx_price + cz_price));
+        seq.add(result, seq.map('id', id, 'price', bbp_price));
+    }
+    return result;
+}
+
+return calc_bill_price_bbp(Ct, Cx, Cz);

@@ -1,0 +1,14 @@
+## K2L上区间的逻辑，入参为K2R下区间
+fn createReg2(K2R) {
+    if(K2R == nil || string.length(str(K2R)) == 0 || type(K2R) == "function"){
+        return "^(0|0\\.([0-6]))$";
+    }
+    let arg = decimal(K2R);
+    if (arg < 0.2M){
+        return "@88#99%";
+    }
+    let valid_values = arg - 0.2M;
+    let decimalPart = bigint(double(valid_values)*10);
+    return "^(0|0\\.([0-" + decimalPart + "]))$";
+}
+return createReg2(K2R);

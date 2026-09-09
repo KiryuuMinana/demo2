@@ -1,0 +1,65 @@
+## 要求(0,100]  E1的 且E1>E2
+
+fn generateE1Regex(E2){
+    if (E2 == nil || string.length(str(E2)) == 0 || type(E2) == "function") {
+        return "^(?!0(\\.0{1,2})?$)(\\d{0,2}?(\\.\\d{1,2})?|100(\\.0{1,2})?)$";
+    }
+    let e = (double(E2)*100);
+    let integerPart = bigint(e/100);
+    let decimalPart = math.round(e - integerPart*100);
+    let regex = "";
+    let ten = nil;
+    let bits = nil;
+    if (integerPart < 99) {
+        ten =  bigint(integerPart/10);
+        bits = math.round(integerPart-ten*10);
+        if (ten == 0){
+            regex = regex + "[" + (bits + 1) + "-9](\\.\\d{1,2})?|[1-9]\\d(\\.\\d{1,2})?";
+        }
+        else{
+            if (ten == 9){
+                regex = regex + "9[" + (bits + 1) + "-9](\\.\\d{1,2})?";
+            }
+            else{
+                regex = regex + "[" + (ten + 1) + "-9]\\d(\\.\\d{1,2})?" + "|" + ten + "[" + (bits + 1) + "-9](\\.\\d{1,2})?";
+            }
+        }
+    }
+
+
+    if (integerPart < 100) {
+        regex = regex + "|(100(\\.0{1,2})?";
+        ten =  bigint(integerPart/10);
+        bits = math.round(integerPart-ten*10);
+
+        let tens = bigint(decimalPart/10);
+        let hundredths = math.round(decimalPart-tens*10);
+        if (tens != 9 || hundredths != 9) {
+            if (ten == 0) {
+                regex = regex + "|" + bits + "\\.";
+            }
+            else {
+                regex = regex + "|" + ten + bits + "\\.";
+            }
+        }
+        if (tens == 9 && hundredths < 9) {
+            regex = regex + "9[" + (hundredths + 1) + "-9]";
+        }
+        if (tens < 9) {
+            regex = regex + "([" + (tens + 1) + "-9]\\d?";
+            if (hundredths < 9) {
+                regex = regex + "|" + tens + "[" + (hundredths+1) + "-9]";
+            }
+            regex = regex + ")";
+        }
+        regex = regex + ")";
+        regex = "^(" + regex + ")$";
+    }
+
+    if (string.length(str(regex)) == 0 && integerPart >= 100){
+        regex = "@88#99%";
+    }
+    return regex;
+}
+
+return generateE1Regex(E2);

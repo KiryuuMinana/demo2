@@ -1,0 +1,16 @@
+## H003-01-01
+fn qs_linear(BLQ, MBPL, M, N, score){
+    QS = seq.list();
+    for key in BLQ{
+        let qs = key;
+        if (key.price < N){
+            qs.price = score;
+        } else {
+            qs.price = (score - M) / (N - MBPL) * key.price + (N * M - score * MBPL) / (N - MBPL);
+        }
+        seq.add(QS,qs);
+    }
+    return QS;
+}
+
+return qs_linear(BLQ, MBPL, M, N, score);

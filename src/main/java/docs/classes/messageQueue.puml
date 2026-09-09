@@ -1,0 +1,45 @@
+@startuml
+'https://plantuml.com/class-diagram
+OpenMessageQueueUtils ..>OpenMessageArg
+OpenMessageArg ..> MsgArg
+MsgPushController ..> MsgArg
+MsgPushController --> OpenMessageQueueUtils
+MsgController --> OpenMessageQueueUtils
+
+class MsgPushController #606DA1{
+    OpenMessageQueueUtils openMessageQueueUtils;
+    public Result<String> pushMsg(MsgArg msg);
+}
+
+class MsgController #606DA1{
+    int openMessageSize; // 可配置的一次队列处理的消息数量
+    public void startDecryptTask(); // TODO 定义定时任务每秒执行一次
+    private synchronized void openMessageTask(); // TODO 从队列中拿出至多openMessageSize条消息并广播发送
+}
+
+class OpenMessageQueueUtils #FB9966{
+    private static String openMessageQueue;
+
+    addTask(OpenMessageArg arg);
+    popTask();
+}
+
+class OpenMessageArg #FB9966{
+    private String redisTopicName;
+    MsgArg msg;
+}
+
+class MsgArg #606DA1{
+
+    private String projectId;
+    private String bidSectionId;
+    private String userId;
+    private ToSystem system;
+    private ToGroup group;
+    private Object msg;
+    private String type;
+    private String nodeId;
+    private List<String> userIds;
+
+}
+@enduml

@@ -1,0 +1,36 @@
+@startuml
+|业务中台|
+start
+:用户配置规则;
+:调用保存规则接口;
+:传递规则参数 (m, n);
+
+|配置服务|
+:接收规则参数;
+if (验证规则合法性?) then (合法)
+    :计算maxI和maxY;
+    :maxI = min(C(m, n), 2000000);
+    :maxY = min(7!, n!);
+else (不合法)
+    stop
+endif
+
+:初始化空列表;
+while (x ∈ [1, 2^m - 1]) is (存在)
+    if (x的二进制位中\n有n个1?) then (是)
+        :将x加入列表;
+    endif
+    if (列表长度 > 2000000?) then (是)
+        break
+    endif
+endwhile
+
+:对列表进行一次shuffle;
+:将列表用逗号分隔并存入文件;
+:上传文件到配置文件服务中;
+:记录文件id、maxI、maxY到sys_sealed_bid_config表;
+
+|业务中台|
+:返回操作结果 (成功/失败);
+stop
+@enduml

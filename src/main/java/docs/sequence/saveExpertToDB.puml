@@ -1,0 +1,31 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+skinparam sequenceMessageAlign center
+autonumber
+box gbes-evalubid-app #87CEEB
+control EvaluExpertController
+participant ExpertManagerServiceImpl
+end box
+
+box gbes-gbp-provider #EB8E55
+participant IGbesUserAdapter
+end box
+
+box gbes-evalubid-data #FF4500
+database IEvalExpertService
+end box
+
+EvaluExpertController -> ExpertManagerServiceImpl: confirmCreateExpert
+activate ExpertManagerServiceImpl #C3AD91
+ExpertManagerServiceImpl -> ExpertManagerServiceImpl: saveExpertToDB
+ExpertManagerServiceImpl -> ExpertManagerServiceImpl: setExpertInfo
+ExpertManagerServiceImpl -> IGbesUserAdapter: getUserByIdCardAndName \n根据idCard及userName获取用户
+ExpertManagerServiceImpl <- IGbesUserAdapter: 返回用户信息，不存在返回null
+ExpertManagerServiceImpl -[#red]> IGbesUserAdapter: addOrUpdateUser \n新增或修改用户
+ExpertManagerServiceImpl <[#red]- IGbesUserAdapter: 返回用户Id
+ExpertManagerServiceImpl -> IEvalExpertService: 用户信息存入eval_expert
+ExpertManagerServiceImpl -[#red]> IGbesUserAdapter: updateUserStatus \n修改用户状态（启用参与方）
+
+deactivate ExpertManagerServiceImpl
+
+@enduml

@@ -1,0 +1,40 @@
+fn segment_score(DR, condition, score) {
+    let list = seq.list();
+    let segment = 2;
+    let result = score;
+    condition = string.split(condition, ',');
+    let groupCount = count(condition) / segment;
+    let bidderCount = count(DR);
+
+    for i in range(0, groupCount) {
+        let sc = condition[i * segment];
+        sc = string.replace_all(sc, "&lt;", "<");
+        sc = string.replace_all(sc, "&le;", "<=");
+        sc = string.replace_all(sc, "&ge;", ">=");
+        sc = string.replace_all(sc, "&gt;", ">");
+        sc = string.replace_all(sc, "&amp;", "&");
+
+        let n = decimal(condition[i * segment + 1]);
+
+        for i in range(0, bidderCount) {
+            let deviation = DR[i];
+            let price = deviation.price * 100;
+            let ex = eval(sc, seq.map('N', price));
+
+            if (ex) {
+                deductScore = n * math.abs(price);
+                result = decimal(score) - decimal(deductScore);
+                if (result < 0) {
+                    result = 0;
+                }
+                seq.add(
+                    list,
+                    seq.map("id",deviation.id,"price",result)
+                );
+            }
+        }
+    }
+    return list;
+}
+
+return segment_score(DR, condition, score);

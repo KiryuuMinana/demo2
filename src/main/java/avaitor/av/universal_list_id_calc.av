@@ -1,0 +1,36 @@
+## 两个列表按 id 对齐后做通用运算（仿 universal_list_calc）
+## list1、list2：元素为含 id、price 的 map
+## operate：1加 2减 3乘 4除 5取余
+## 规则：以 list1 为左操作数；同 id 则 list1.price op list2.price；
+##       仅 list1 有则保留原值；仅 list2 有则写入 list2.price
+fn universal_list_id_calc(list1, list2, operate) {
+    let priceMap = seq.map();
+    for item in list1 {
+        seq.put(priceMap, item.id, decimal(item.price));
+    }
+    for item in list2 {
+        let left = seq.get(priceMap, item.id);
+        let right = decimal(item.price);
+        if (left == nil) {
+            seq.put(priceMap, item.id, right);
+        } elsif (operate == 1) {
+            seq.put(priceMap, item.id, left + right);
+        } elsif (operate == 2) {
+            seq.put(priceMap, item.id, left - right);
+        } elsif (operate == 3) {
+            seq.put(priceMap, item.id, left * right);
+        } elsif (operate == 4) {
+            seq.put(priceMap, item.id, left / right);
+        } elsif (operate == 5) {
+            seq.put(priceMap, item.id, left % right);
+        }
+    }
+    let result = seq.list();
+    let keys = seq.keys(priceMap);
+    for id in keys {
+        seq.add(result, seq.map("id", id, "price", seq.get(priceMap, id)));
+    }
+    return result;
+}
+
+return universal_list_id_calc(list1, list2, operate);

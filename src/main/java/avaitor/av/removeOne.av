@@ -1,0 +1,9 @@
+## func H001-01-29
+## examples/remove_one.av
+
+fn remove_one(arr,x){
+    p(arr);
+    return filter(arr, lambda(e) -> e.price != x end);
+}
+
+return remove_one(arr,x);

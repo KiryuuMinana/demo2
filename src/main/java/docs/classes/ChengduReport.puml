@@ -1,0 +1,89 @@
+@startuml
+class GetReportListDTO {
+  +int sumModel
+  +int printModel
+  +String bidSectionId
+  +String evbidId
+  +String projectId
+  +int stage
+  +String fileName
+  +List<String> reportFileIdList
+}
+
+class EvalReport {
+  +String reportName
+  +String createUserId
+  +String reportFileId
+  +String projectId
+  +String bidSectionId
+  +String evbidId
+  +Integer reportOrder
+  +String tempId
+  +String systemType
+  +int stage
+  +String userId
+}
+
+interface RIEvaluReportExtendService {
+  +Result<String> getReportList(GetReportListDTO getReportListDTO)
+}
+
+class EvaluReportExtendController {
+  -IEvaluReportBusinessService evaluReportBusinessService
+  +Result<String> getReportList(GetReportListDTO getReportListDTO)
+}
+
+interface IEvaluReportBusinessService {
+  +Result<String> getReportList(GetReportListDTO getReportListDTO)
+}
+
+class EvaluReportBusinessServiceImpl {
+  -IEvalReportService evalReportService
+  -RedisUtils redisUtils
+  +Result<String> getReportList(GetReportListDTO getReportListDTO)
+  -Result<String> genPdfReport(String bidSectionId, String evbidId, boolean isPrint, boolean isSummary, List<String> reportFileIdList, String fileName, String projectId, int stage, String userId)
+  -String genPdfReport(List<String> reportFileIdList)
+}
+
+interface IRedisUtils {
+  +boolean lock(String key)
+  +void unLock(String key)
+}
+
+class RedisUtilsImpl {
+  +boolean lock(String key)
+  +void unLock(String key)
+}
+
+interface IEvalReportService {
+  +List<EvalReport> lambdaQuery()
+  +boolean save(EvalReport evalReport)
+}
+
+class EvalReportServiceImpl {
+  +List<EvalReport> lambdaQuery()
+  +boolean save(EvalReport evalReport)
+}
+
+EvaluReportExtendController ..|> RIEvaluReportExtendService
+EvaluReportExtendController --> IEvaluReportBusinessService
+EvaluReportBusinessServiceImpl ..|> IEvaluReportBusinessService
+EvaluReportBusinessServiceImpl --> IEvalReportService
+EvaluReportBusinessServiceImpl --> IRedisUtils
+EvalReportServiceImpl ..|> IEvalReportService
+RedisUtilsImpl ..|> IRedisUtils
+
+note right of EvaluReportBusinessServiceImpl::genPdfReport
+  根据报表文件ID列表生成PDF
+  如果是打印模式直接返回文件ID
+  否则将生成的PDF信息存入数据库
+end note
+
+note right of EvaluReportBusinessServiceImpl::getReportList
+  获取报表列表主要逻辑：
+  1. 获取参数并加锁
+  2. 根据打印模式判断是否查询已有报表
+  3. 调用生成PDF方法
+  4. 释放锁
+end note
+@enduml

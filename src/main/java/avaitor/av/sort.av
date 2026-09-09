@@ -1,0 +1,15 @@
+## examples/min.av
+fn f_min(arr, x) {
+    if is_empty(arr) {
+            return 0M;
+    }
+    let minIndex = 0;
+    if x > 0 {
+        minIndex = x - 1;
+    }
+    arr = sort(arr, comparator(lambda(x, y) -> x.price < y.price end));
+    minValue = arr[minIndex];
+    return minValue.price;
+}
+
+return f_min(arr, x);

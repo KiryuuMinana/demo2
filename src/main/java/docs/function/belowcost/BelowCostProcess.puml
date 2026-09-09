@@ -1,0 +1,28 @@
+@startuml ConfigRetrievalProcess
+
+participant "EvalScoreV2ServiceImpl" as Service
+participant "EvalScoreConfigStorage" as Storage
+participant "Redis缓存" as Redis
+participant "RIEvaluScorePageConfigService" as ConfigClient
+participant "配置服务" as ConfigService
+participant "数据库" as DB
+
+Service -> Storage: getTableConfigList(configType, baseArg)
+Storage -> Redis: 检查缓存 key=eval:score:pageConfig:{bidSectionId}:{stepId}:{configType}
+
+alt 缓存命中
+    Redis --> Storage: 返回缓存配置
+    Storage --> Service: 返回EvalScoreTableConfig列表
+else 缓存未命中
+    Redis --> Storage: 返回空
+    Storage -> ConfigClient: queryEvaluScorePageConfigList()
+    ConfigClient -> 配置服务: 查询配置列表
+    配置服务 -> DB: 查询sys_evalu_score_page_config表
+    DB --> 配置服务: 返回配置数据
+    配置服务 --> ConfigClient: 返回QueryEvaluScorePageConfigVO列表
+    ConfigClient --> Storage: 返回配置数据
+    Storage -> Redis: 设置缓存(1小时)
+    Storage --> Service: 返回EvalScoreTableConfig列表
+end
+
+@enduml

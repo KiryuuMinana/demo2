@@ -1,0 +1,35 @@
+@startuml EvalScoreCoreSequence
+
+actor User as 用户
+participant "EvalScoreV2Controller" as Controller
+participant "EvalScoreV2ServiceImpl" as Service
+participant "EvalScoreConfigStorage" as Storage
+participant "RIEvaluScorePageConfigService" as ConfigClient
+participant "EvaluScorePageConfigController" as ConfigController
+participant "EvaluScorePageConfigServiceImpl" as ConfigService
+participant "RowCellDataHandler" as DataHandler
+participant "动态处理器" as DynamicHandlers
+
+用户 -> Controller: getScoreTableData()
+Controller -> Service: getScoreTableDataRowCellConvert()
+Service -> Storage: getTableConfigList()
+Storage -> ConfigClient: queryEvaluScorePageConfigList()
+ConfigClient -> ConfigController: queryEvaluScorePageConfigList()
+ConfigController -> ConfigService: queryEvaluScorePageConfigList()
+ConfigService --> ConfigController: 返回配置列表
+ConfigController --> ConfigClient: 返回配置列表
+ConfigClient --> Storage: 返回配置列表
+Storage --> Service: 返回EvalScoreTableConfig列表
+
+loop 对每个配置项
+    Service -> Service: ClassLoaderUtil.loadClass()
+    Service -> DynamicHandlers: ReflectUtil.newInstance()
+    DynamicHandlers --> Service: 处理表格数据
+end
+
+Service -> DataHandler: rowCellDataConvert()
+DataHandler --> Service: 行列转换处理
+Service --> Controller: 返回EvalScoreTableResult
+Controller --> 用户: 返回表格数据
+
+@enduml

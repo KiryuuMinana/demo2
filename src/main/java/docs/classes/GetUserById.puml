@@ -1,0 +1,166 @@
+@startuml
+
+package "gbes-gbp-provider" #DDDDDD {
+
+  package model {
+    package base {
+        class GbesUser{
+            String userId;
+            String userCode;
+            String userName;
+            String userType;
+            String idcard;
+            String password;
+            String status;
+            String token;
+            String loginName;
+            String email;
+            String phonenumber;
+            String avatarPath;
+            String expCertNum1;
+            String expCertNum2;
+            String expCertNum3;
+            String expCertNum4;
+            String expCertNum5;
+            String sex;
+            String remark;
+        }
+    }
+    package addUser {
+        class GbpParticipant{
+            String type;
+            String identityType;
+            String id;
+            String name;
+            String creditCode;
+            String vendorId;
+            String shortName;
+            String code;
+            String projectId;
+            List<GbpParticipantTypeAddReq> participantTypes;
+            List<GbpParticipantTypeUpdateReq> participantTypeDTOList;
+            List<GbpParticipantAdmin> participanters;
+        }
+        class GbpParticipantTypeUpdateReq{
+            String participantType;
+            private String participantName;
+        }
+        GbpParticipant-->GbpParticipantTypeUpdateReq
+        GbpParticipant-->GbpParticipantAdmin
+        class GbpParticipantAdmin{
+            String accountType;
+            String id;
+            String name;
+            String mobileNumber;
+            String account;
+            Long notifyNumber;
+            String remark;
+            boolean isAdmin;
+            String initPassword;
+            boolean notify;
+            String userId;
+            String oldUserId;
+            String participantId;
+            String vendorId;
+            List<GbpParticipant> participantInfo;
+        }
+    }
+    package queryUser {
+        class GbpUserProductVO{
+            String userId;
+            List<ProductRole> productRoles;
+        }
+        GbpUserProductVO-->ProductRole
+        class ProductRole{
+            String productCode;
+            List<Role> roles;
+        }
+        ProductRole-->Role
+        class Role{
+            String roleId;
+            String name;
+            List<String> authorityCodes;
+        }
+        class GbpUserVO{
+        	String id;
+        	String name;
+        	String account;
+        	String mobileNumber;
+        	String notifyNumber;
+        	Integer status;
+        	String accountCloudId;
+        	String accountGlobalId;
+        	String email;
+        	String originalPassword;
+        	String admin;
+        	String passwordEmail;
+        	Integer accountType;
+        	String gender;
+        	String remark;
+        	String tenantUserType;
+        	String userOrder;
+        	String tenantId;
+        	String cloudMemberId;
+        	String adminUserToken;
+        	Boolean isNewUser;
+        	String initPassword;
+        	Boolean isTenantNew;
+        	String signImageUrl;
+        	Boolean modifyAccount;
+        	String userSubAccountList;
+        	String deleted;
+        	Boolean bindAdmin;
+        	String avatarPath;
+        	String externalType;
+        	String externalEntityId;
+        	Boolean saveExternalTenantUser;
+        	Boolean isExternalTenantNew;
+        	String source;
+        	String jobNumber;
+        	String unionId;
+        	String sourceChannel;
+        	String sourceIdentity;
+        	Boolean isSendInitPasswordSms;
+        	String sourceDisplayName;
+        }
+    }
+  }
+
+  package service{
+    interface IGbesUserAdapter{
+        List<GbesUser> getUserListByIds(List<String> userIds);
+    }
+    class GbesUserAdapter{
+        GbpUserService gbpUserService;
+        GbpParticipantService gbpParticipantService;
+        GbpVendorsService gbpVendorsService;
+        List<GbesUser> getUserListByIds(List<String> userIds);
+    }
+
+    class GbpParticipantService{
+        GbpConfig gbpConfig;
+        GbpRequestUtil gbpRequestUtil;
+        String getRootOrganId();
+        GbpParticipantAdmin queryParAdminByUserId(String userId);
+    }
+    class GbpUserService{
+        GbpConfig gbpConfig;
+        GbpRequestUtil gbpRequestUtil;
+        List<GbpUserVO> getUserListByIds(String userIds);
+        List<GbpUserProductVO> getTenantRoles(String orgId , List<String> userIds);
+    }
+    class GbesUserAdapter implements IGbesUserAdapter
+    GbesUserAdapter-->GbpUserService
+    GbesUserAdapter-->GbpParticipantService
+    GbesUserAdapter-->GbpVendorsService
+    GbesUserAdapter..>GbesUser
+    GbpUserService-->GbpUserVO
+    GbpUserService..>GbpUserProductVO
+    GbpParticipantService..>GbpParticipantAdmin
+  }
+
+}
+
+
+
+@enduml

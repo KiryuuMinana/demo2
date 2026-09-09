@@ -1,0 +1,12 @@
+## func H001-01-16-1
+## examples/filterEPn.av
+
+fn filterEPn(PL, isFilter, EPn, MBPL) {     if (isFilter == false) {         return EPn;     }     SEPn = seq.list();     let isEpn = false;     let epnMap = seq.map();      for key in EPn{         seq.put(epnMap,key.bidderId,key);     }      for key in PL{         let epn = seq.get(epnMap,key.bidderId);         if (key.price == nil){             isEpn = true;             if (epn != nil && epn.price <= MBPL){                         seq.add(SEPn,epn);             }         }     }     if (isEpn == false){         for key in PL{             if (key.price <= MBPL){                 let epn = seq.get(epnMap,key.bidderId);                 if(epn != nil){                     seq.add(SEPn,epn)                 }             }         }     }      return SEPn; }
+
+SEPn = nil;
+
+## cond 64ea08201fb461442e5986e65d465acd start
+SEPn = filterEPn(PL,IsFilter,EPn,MBPL);
+## cond 64ea08201fb461442e5986e65d465acd end
+
+return SEPn;

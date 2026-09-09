@@ -1,0 +1,138 @@
+@startuml
+title 招投标评标时序图
+
+actor "招标代理" as Agent
+participant "预审开标服务" as PreOpen
+participant "预审评标服务" as PreEval
+participant "预审复评服务" as PreReEval
+participant "后审开标服务" as PostOpen
+participant "后审评标服务" as PostEval
+database "数据库" as DB
+
+== 预审阶段 ==
+
+Agent -> PreOpen: 1. 开始预审开标
+PreOpen -> PreOpen: 2. 系数抽取\n(Tzg, Tzd, Pk, Fg)
+PreOpen -> DB: 3. 存入open_extract_coef_item
+DB --> PreOpen: 存储成功
+PreOpen -> DB: 4. 同步到eval_extract_coef_item
+DB --> PreOpen: 同步成功
+PreOpen --> Agent: 5. 预审开标完成
+
+Agent -> PreEval: 6. 开始预审评标
+
+PreEval -> PreEval: 7. 总报价得分计算\n(算法: HN-B004-01-10-A)
+note right of PreEval
+    使用eval_extract_coef_item表中的系数
+end note
+
+PreEval -> PreEval: 8. 计算入围申请人
+note right of PreEval
+    计算Pp、Pz参数
+end note
+PreEval -> DB: 9. 存入eval_quotation_coef_show
+DB --> PreEval: 存储成功
+PreEval --> Agent: 10. 预审评标完成
+
+== 预审复评阶段（可多次）==
+
+Agent -> PreReEval: 11. 发起第一次复评
+PreReEval -> PreReEval: 12. 复评进行中
+PreReEval --> Agent: 13. 第一次复评结束
+
+Agent -> PreReEval: 14. 发起第二次复评
+PreReEval -> PreReEval: 15. 复评进行中
+PreReEval --> Agent: 16. 第二次复评结束
+
+note over PreReEval
+    可发起若干次复评
+    每次复评名字拼接递增
+    最后一次复评名字最长
+    必须在上一次结束后才能发起下一次
+end note
+
+== 数据准备阶段 ==
+
+Agent -> PostOpen: 17. 根据后审招标文件\n创建后审开评标项目
+
+PostOpen -> PreReEval: 18. 查找对应预审的\n最后一次复评项目
+PreReEval --> PostOpen: 19. 返回标段id信息
+
+PostOpen -> PreEval: 20. 发送消息请求数据
+note right of PostOpen
+    请求获取:
+    - eval_extract_coef_item
+    - eval_quotation_coef_show
+    两张表的数据
+end note
+
+PreEval -> DB: 21. 查询数据
+DB --> PreEval: 22. 返回数据
+PreEval -> PreEval: 23. 复制数据并\n修改为后审相关id
+PreEval -> DB: 24. 存入后审相关表
+DB --> PreEval: 25. 存储成功
+PreEval --> PostOpen: 26. 数据准备完成
+
+== 后审阶段 ==
+
+PostOpen --> Agent: 27. 后审开标准备就绪
+Agent -> PostOpen: 28. 开始后审开标
+note right of PostOpen
+    无系数抽取步骤
+    因使用算法HN-B004-01-10-B
+end note
+PostOpen --> Agent: 29. 后审开标完成
+
+Agent -> PostEval: 30. 开始后审评标
+
+PostEval -> PostEval: 31. 总报价得分计算\n(算法: HN-B004-01-10-B)
+
+note right of PostEval
+    计算需要:
+    1. 已准备好的系数和参数
+    2. 对应预审最后一次复评的
+       投标单位及报价信息
+    使用预审的投标单位id
+end note
+
+PostEval -> PreReEval: 32. 获取投标单位及报价信息
+PreReEval --> PostEval: 33. 返回数据
+
+PostEval -> PostEval: 34. 第一轮入围\n(选取20家)
+
+PostEval -> PostEval: 35. 分部分项清单报价得分
+
+note right of PostEval
+    需要对应预审最后一次复评的
+    投标单位及清单信息
+    解析预审清单后计算
+    使用预审的投标单位id
+end note
+
+PostEval -> PreReEval: 36. 获取投标单位及清单信息
+PreReEval --> PostEval: 37. 返回数据
+PostEval -> PostEval: 38. 解析清单并计算
+
+PostEval -> PostEval: 39. 主要材料报价得分
+note right of PostEval
+    同分部分项清单报价得分
+    也需要对应预审的清单信息
+    使用预审的投标单位id
+end note
+
+PostEval -> PreReEval: 40. 获取清单信息
+PreReEval --> PostEval: 41. 返回数据
+PostEval -> PostEval: 42. 计算得分
+
+PostEval -> PostEval: 43. 得分汇总排名
+PostEval --> Agent: 44. 后审评标完成
+
+note over PostEval
+    重要说明:
+    第31、35、39步使用的都是
+    预审项目的投标单位id
+    只读数据，不做否决操作
+    完全与后审其他步骤隔离
+end note
+
+@enduml

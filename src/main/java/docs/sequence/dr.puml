@@ -1,0 +1,42 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+skinparam sequenceMessageAlign center
+autonumber
+box gbes-evalubid-app #B8DED0
+control QuotationScoreController
+participant QuotationScoreServiceImpl
+end box
+
+box gbes-calculation-service #E6E3C5
+participant QuotationScoreController_
+end box
+
+box gbes-quotationscore-provider #509296
+participant QuotationScoreInfoServiceImpl
+end box
+
+box 业务平台 #FFFBF8
+participant GbesSyAlgTemplateConfigController
+end box
+
+QuotationScoreController -> QuotationScoreServiceImpl: getQuotationScoreInfo
+activate QuotationScoreServiceImpl #8F82BC
+activate QuotationScoreController_ #F8D09D
+QuotationScoreServiceImpl -> QuotationScoreController_: getQuotationScoreListHeader
+activate QuotationScoreInfoServiceImpl #AFCD53
+QuotationScoreController_ -> QuotationScoreInfoServiceImpl: getQuotationScoreListHeader
+QuotationScoreInfoServiceImpl -> QuotationScoreInfoServiceImpl: getAlgTemplateConfigVO
+activate GbesSyAlgTemplateConfigController #EE819E
+QuotationScoreInfoServiceImpl -> GbesSyAlgTemplateConfigController: getAlgTemplateConfig
+QuotationScoreInfoServiceImpl <- GbesSyAlgTemplateConfigController: 返回算法模版配置
+QuotationScoreInfoServiceImpl -> QuotationScoreInfoServiceImpl: addOrUpdateUser 获取算法模版配置
+QuotationScoreController_ <- QuotationScoreInfoServiceImpl: 返回报价打分列表表头信息
+QuotationScoreController_ -> QuotationScoreServiceImpl: 返回报价打分列表表头信息
+QuotationScoreServiceImpl -> QuotationScoreController: 返回报价打分主页面列表数据
+
+deactivate GbesSyAlgTemplateConfigController
+deactivate QuotationScoreInfoServiceImpl
+deactivate QuotationScoreController_
+deactivate QuotationScoreServiceImpl
+
+@enduml

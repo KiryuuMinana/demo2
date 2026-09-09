@@ -1,0 +1,67 @@
+## enterBidder2
+## 判断是否开启当前轮次，并返回页面展示所需状态（固定总人数、不固定轮数）
+## 参数说明：
+##   total_person : 固定的入围总人数上限
+##   CR           : 当前已生成轮次（不区分入围/推荐入围/候补/递补，从0开始，0表示尚未开始任何轮次）
+##   FB           : 步骤开始时有效投标单位数（用于判断人数是否达到阈值）
+##   EB           : 当前因所有原因已经勾选的人数
+##   IB           : 当前初始化的投标人列表
+##                  若入围轮次详情表数据为空，则为自定义有效投标人列表；
+##                  否则为自定义有效投标人列表与入围轮次详情表中所有已勾选入围投标单位的差集
+
+fn enterBidder2(total_person, CR, FB, EB, IB) {
+
+    ## 分支1：步骤开始时有效投标单位数 < 触发阈值，人数不足
+    if (total_person >= FB) {
+
+        ## 非第一轮（CR != 0）：人数不足且已经历过轮次，不再开启新轮，进入推荐入围流程
+        if (CR != 0) {
+            let result = seq.map();
+            seq.put(result, "isOpen", false);           ## 本轮不开启
+            seq.put(result, "checkStatus", -1);         ## -1：不可再勾选（全部强制打钩）
+            return result;
+        } else {
+            ## 第一轮（CR == 0）：人数不足但是第一轮，直接开启，全部打钩且不可再勾选
+            let result = seq.map();
+            seq.put(result, "isOpen", true);            ## 开启本轮
+            seq.put(result, "currentRound", CR + 1);    ## 当前轮次（第一轮=1）
+            seq.put(result, "checkStatus", -1);         ## -1：不可再勾选（全部强制打钩）
+            seq.put(result, "checkableCount", 0);       ## 可勾选人数=0（配合-1标识）
+            let IbList = seq.list();
+            for ib_item in IB {
+                seq.add(IbList, seq.map('id', ib_item, 'checked', 1));
+            }
+            seq.put(result, "IbList", IbList);          ## 页面展示入围人列表，全部打钩
+            return result;
+        }
+
+    } else {
+        ## 分支2：步骤开始时有效投标单位数 >= 触发阈值，人数充足
+
+        ## 分支2-1：已勾选人数已达到固定总人数，入围名额已满，不开启本轮
+        if (EB == total_person) {
+            let result = seq.map();
+            seq.put(result, "isOpen", false);           ## 本轮不开启
+            seq.put(result, "checkStatus", -3);          ## -3：已勾选足够人数
+            return result;
+        } else {
+            ## 分支2-2：名额未满，开启第 CR+1 轮
+            let nextRound = CR + 1;
+            let checkableCount = total_person - EB;     ## 剩余可勾选人数 = 固定总人数 - 已勾选人数
+
+            let result = seq.map();
+            seq.put(result, "isOpen", true);            ## 开启下一轮
+            seq.put(result, "currentRound", nextRound); ## 当前展示轮次为 CR+1
+            seq.put(result, "checkStatus", -2);         ## -2：至少勾选扩1人
+            seq.put(result, "checkableCount", checkableCount); ## 本轮可勾选人数上限
+            let IbList = seq.list();
+            for ib_item in IB {
+                seq.add(IbList, seq.map('id', ib_item, 'checked', 0));
+            }
+            seq.put(result, "IbList", IbList);          ## 页面展示入围人列表，全部不打钩
+            return result;
+        }
+    }
+}
+
+return enterBidder2(total_person, CR, FB, EB, IB);

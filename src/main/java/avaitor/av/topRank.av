@@ -1,0 +1,22 @@
+fn topRank(rankList,n,EPn){
+    if (count(rankList) < n){
+        return EPn;
+    }
+    rankList = sort(rankList, comparator(lambda(x, y) -> x.rank < y.rank end));
+    resList = seq.list();
+    let epnMap = seq.map();
+    for key in EPn{
+        seq.put(epnMap,key.id,key);
+    }
+    for i in range(0,n) {
+        let curRank = rankList[i];
+        let curId = curRank.id;
+        let epn = seq.get(epnMap,curId);
+        if(epn != nil){
+            seq.add(resList,epn)
+        }
+    }
+    return resList;
+}
+
+return topRank(rankList,n,EPn);

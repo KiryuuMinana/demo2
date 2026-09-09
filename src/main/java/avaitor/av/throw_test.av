@@ -1,0 +1,5 @@
+fn throw_test(arr){
+    throw new IllegalArgumentException("test11111111捕获到异常了11111111");
+}
+
+return throw_test(arr);

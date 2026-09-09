@@ -1,0 +1,109 @@
+@startuml
+title 招投标评标流程
+
+' 预审阶段
+rectangle "预审开标" as preOpen
+rectangle "预审评标" as preEval
+rectangle "预审复评" as preReEval
+
+' 后审阶段
+rectangle "后审开标" as postOpen
+rectangle "后审评标" as postEval
+
+' 预审评标内部步骤
+rectangle "总报价得分\n算法: HN-B004-01-10-A" as preEval_1
+rectangle "计算入围申请人" as preEval_2
+
+' 后审评标内部步骤
+rectangle "总报价得分\n算法: HN-B004-01-10-B" as postEval_1
+rectangle "第一轮入围\n(20家)" as postEval_2
+rectangle "分部分项清单报价得分" as postEval_3
+rectangle "主要材料报价得分" as postEval_4
+rectangle "得分汇总排名" as postEval_5
+
+' 预审开标注释
+note right of preOpen
+    系数抽取: Tzg, Tzd, Pk, Fg
+    存入 open_extract_coef_item 表
+    开标结束时同步到 eval_extract_coef_item 表
+end note
+
+' 计算入围申请人注释
+note right of preEval_2
+    计算参数 Pp, Pz
+    存入 eval_quotation_coef_show 表
+end note
+
+' 预审复评注释
+note right of preReEval
+    可以发起若干次复评
+    每一次复评必须在上一次结束后发起
+    最后一次复评名字最长
+    通过名字拼接实现
+end note
+
+' 后审开标注释
+note right of postOpen
+    无系数抽取步骤
+    因后审使用算法 HN-B004-01-10-B
+end note
+
+' 总报价得分注释
+note right of postEval_1
+    计算需要的数据:
+    1. eval_extract_coef_item 表的系数
+    2. eval_quotation_coef_show 表的参数
+    3. 对应预审最后一次复评的投标单位及报价信息
+end note
+
+' 分部分项清单报价得分注释
+note right of postEval_3
+    计算需要的数据:
+    对应预审最后一次复评的投标单位及清单信息
+    解析预审清单后进行计算
+end note
+
+' 主要材料报价得分注释
+note right of postEval_4
+    同分部分项清单报价得分
+    也需要对应预审的清单信息
+end note
+
+' 全局重要说明
+note top
+    重要说明:
+    1. 后审创建时需找到对应预审的最后一次复评项目
+    2. 通过消息机制复制数据:
+       - eval_extract_coef_item
+       - eval_quotation_coef_show
+       复制后修改为后审相关ID
+    3. 后审三个算法步骤使用预审的投标单位ID
+    4. 这些步骤只读数据，不操作后审的投标单位
+end note
+
+' 主要流程连接
+preOpen --> preEval : 预审流程开始
+preEval --> preReEval : 预审评标结束\n可发起复评
+preReEval -down-> preReEval : 可多次复评\n每次名字递增
+preReEval --> postOpen : 最后一次预审复评结束\n启动后审
+postOpen --> postEval : 后审评标开始
+
+' 预审内部步骤连接
+preEval --> preEval_1
+preEval_1 --> preEval_2
+
+' 后审内部步骤连接
+postEval --> postEval_1
+postEval_1 --> postEval_2
+postEval_2 --> postEval_3
+postEval_3 --> postEval_4
+postEval_4 --> postEval_5
+
+' 数据流连接
+preEval_1 -[#red]-> preEval_2 : 系数传递
+preReEval -[#blue]-> postEval_1 : 系数/参数复制
+preReEval -[#blue]-> postEval_1 : 投标单位及报价信息
+preReEval -[#green]-> postEval_3 : 投标单位及清单信息
+preReEval -[#green]-> postEval_4 : 投标单位及清单信息
+
+@enduml

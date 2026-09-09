@@ -1,0 +1,40 @@
+@startuml GetEnterpriseDetailSequenceDiagram
+
+actor "前端客户端" as Client
+participant "CreditDualFormController" as Controller
+participant "CreditDualFormServiceImpl" as Service
+participant "IEvalUnionService" as UnionService
+participant "IEvalBidderExtendService" as ExtendService
+participant "JSON处理" as JSON
+
+Client -> Controller: POST /getEnterpriseDetail\n(GetEnterpriseDetailDTO)
+Controller -> Service: getEnterpriseDetail(dto)
+
+alt 是联合体成员
+    Service -> UnionService: 查询联合体扩展信息
+    UnionService --> Service: List<EvalUnion>
+
+    loop 遍历联合体条目
+        Service -> JSON: 解析extJson
+        JSON --> Service: creditDualForm数组
+
+        loop 查找匹配的uniqueId
+            Service -> Service: 提取企业详细信息
+        end
+    end
+else 不是联合体成员
+    Service -> ExtendService: 查询投标单位扩展信息
+    ExtendService --> Service: EvalBidderExtend
+
+    Service -> JSON: 解析evalJson
+    JSON --> Service: creditDualForm数组
+
+    loop 查找匹配的uniqueId
+        Service -> Service: 提取企业详细信息
+    end
+end
+
+Service --> Controller: EnterpriseDetailVO
+Controller --> Client: Result<EnterpriseDetailVO>
+
+@enduml

@@ -1,0 +1,6 @@
+## examples/f_count.av
+fn f_count(args) {
+    return count(args);
+}
+
+return f_count(args);

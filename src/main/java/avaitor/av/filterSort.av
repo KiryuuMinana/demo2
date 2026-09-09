@@ -1,0 +1,31 @@
+## 排序过滤前n个报价，1正序(从小到大)，0逆序(从大到小)
+
+fn sortFilter(arr,n,reverse){
+    if (reverse == 0){
+        arr = sort(arr, comparator(lambda(x, y) -> decimal(x.price) > decimal(y.price) end));
+    }
+    if (reverse == 1){
+        arr = sort(arr, comparator(lambda(x, y) -> decimal(x.price) < decimal(y.price) end));
+    }
+    if (count(arr) <= n){
+        return arr;
+    }
+    let res = seq.list();
+    let c = 0;
+    for key in arr{
+        seq.add(res, key);
+        c = c + 1;
+        if (c >= n){
+            break;
+        }
+    }
+    return res;
+}
+
+
+return sortFilter(arr,n,reverse);
+
+
+
+
+

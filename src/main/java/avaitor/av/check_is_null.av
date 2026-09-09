@@ -1,0 +1,7 @@
+## H002-01-02
+
+fn check_is_null(list){
+    return is_empty(list);
+}
+
+return check_is_null(list);

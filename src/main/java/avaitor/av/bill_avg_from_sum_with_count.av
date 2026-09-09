@@ -1,0 +1,10 @@
+fn bill_avg_from_sum_with_count(arr) {
+    let list = seq.list();
+    for item in arr {
+        let avgPrice = item.price / item.bidderCount;
+        seq.add(list, seq.map("billId", item.billId, "avgPrice", avgPrice));
+    }
+    return list;
+}
+
+return bill_avg_from_sum_with_count(SPEP_SUM);

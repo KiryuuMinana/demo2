@@ -1,0 +1,38 @@
+## 评标价对照表法 - 报价得分
+## 入参：list=DR（偏差率列表，price 为比例，如 -0.003 表示 -0.3%），score=报价满分（对照表满分一般为 30）
+## 出参：QSn，元素为 seq.map("id", id, "price", 得分)——此处 price 语义为得分，与现网约定一致
+##
+## 评分规则（drPct = DR.price * 100，单位：百分点，如 -0.3 表示 -0.3%）：
+##   偏低：[-0.3, 0] → 满分；再每低 1% 扣 3 分，扣至 0
+##   偏高：(0, 0.5] → 满分-3；再每高 0.5% 扣 3 分，扣至 0
+
+fn custom_qs_price_table(list, score) {
+    QSn = nil;
+    for key in list {
+        if QSn == nil {
+            QSn = seq.list();
+        }
+        let drPct = decimal(key.price) * 100.0M;
+        let QS = 0.0M;
+
+        if drPct >= -0.3M && drPct <= 0 {
+            QS = decimal(score);
+        }
+        if drPct < -0.3M {
+            ## [-1.3,-0.3)→扣1档，[-2.3,-1.3)→扣2档……边界用 ceil 保证左闭
+            let excess = double(-0.3M - drPct);
+            let steps = math.ceil(excess / 1.0);
+            QS = decimal(score) - decimal(steps) * 3.0M;
+        }
+        if drPct > 0 {
+            ## (0,0.5]→扣1档，(0.5,1%]→扣2档……
+            let steps = math.ceil(double(drPct) / 0.5);
+            QS = decimal(score) - decimal(steps) * 3.0M;
+        }
+
+        seq.add(QSn, seq.map("id", key.id, "price", max(QS, 0)));
+    }
+    return QSn;
+}
+
+return custom_qs_price_table(DR, score);

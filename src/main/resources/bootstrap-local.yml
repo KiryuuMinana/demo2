@@ -1,0 +1,11 @@
+spring:
+  cloud:
+    nacos:
+      config:
+        enabled: false
+        namespace: 0731fb8d-b57e-48ef-9443-ffd1bab22d1e
+        file-extension: yaml
+      discovery:
+        service: gateway_service
+        namespace: 0731fb8d-b57e-48ef-9443-ffd1bab22d1e
+

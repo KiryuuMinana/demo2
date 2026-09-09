@@ -1,0 +1,17 @@
+@startuml
+start
+:接收前端请求;
+if (打印模式?) then (是)
+  :调用genPdfReport(打印模式);
+else (否)
+  :查询数据库是否存在PDF;
+  if (存在?) then (是)
+    :返回已有文件ID;
+  else (否)
+    :调用genPdfReport(非打印模式);
+    :存储PDF到数据库;
+  endif
+endif
+:返回结果;
+stop
+@enduml

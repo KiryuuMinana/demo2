@@ -1,0 +1,85 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+title 报表生成业务类图
+
+package "开标APP服务" {
+    class OpenReportController {
+        + genAndDownOpenExcelReportFile(GenExcelReportDTO): Result<String>
+    }
+}
+
+package "开标Service服务" {
+    interface OpenReportService <<interface>> {
+        + genAndDownOpenExcelReportFile(GenExcelReportDTO): String
+        + getReportFileTempDownLoadUrl(GetOpenReportFileUrlArg): Result<String>
+    }
+
+    class OpenReportServiceImpl {
+        + genExcelReport(GenExcelReportDTO, HttpServletRequest): String
+    }
+}
+
+package "开标报表组件" {
+    class ReportComponent {
+        + genExcelReport(GenReportParam): Result<String>
+    }
+
+    interface IGenReportHandler <<interface>> {
+        + getExcelReportTemplate(String): ReportTemplate
+        + checkParam(GenReportParam)
+    }
+
+    abstract class BaseGenReportHandler {
+        + getExcelReportTemplate(String): ReportTemplate
+    }
+
+    class ReportServiceImpl {
+        - redisUtils: RedisUtils
+        + genExcelReport(GenReportParam): String
+        - engineGenReportExcel(GenReportParam, ReportTemplate, String): boolean
+        - uploadGenReport(GenReportFileInfo): String
+    }
+}
+
+package "配置服务" {
+    class SysReportConfigController {
+        + getReportTemplateByOriginalTempId(String): Result<ReportTemplate>
+    }
+
+    class ExcelRelationService {
+        + lambdaQuery(): QueryWrapper
+    }
+
+    class ReportTemplateInfoService {
+        + getReportTemplateByTempIds(List<String>): List<ReportTemplate>
+    }
+}
+
+' 核心依赖关系
+OpenReportController --> OpenReportService : 依赖
+OpenReportServiceImpl ..|> OpenReportService : 实现
+OpenReportServiceImpl --> ReportComponent : 调用
+ReportComponent --> ReportServiceImpl : 组合
+
+BaseGenReportHandler --|> BaseReportHandler : 继承
+BaseGenReportHandler ..|> IGenReportHandler : 实现
+BaseGenReportHandler --> SysReportConfigController : 调用
+ReportServiceImpl --> IGenReportHandler : 依赖聚合
+ReportServiceImpl --> RedisUtils : 依赖
+ReportServiceImpl --> FileSystem : 依赖
+
+SysReportConfigController --> ExcelRelationService : 组合
+SysReportConfigController --> ReportTemplateInfoService : 组合
+SysReportConfigController --> BeanUtils : 工具类
+
+class GenExcelReportDTO <<DTO>>
+class GetOpenReportFileUrlArg <<Param>>
+class GenReportParam <<Param>>
+class ReportTemplate <<Entity>>
+class Report <<Entity>>
+
+OpenReportController --> GenExcelReportDTO : 接收参数
+OpenReportServiceImpl --> GenReportParam : 构建参数
+SysReportConfigController --> ReportTemplate : 返回实体
+@enduml

@@ -1,0 +1,12 @@
+## H002-01-01
+
+fn filter_effect_bidder(list, arr){
+    let bidderIdList = seq.list();
+    for key in arr{
+        seq.add(bidderIdList, key.id);
+    }
+    let resList = filter(list, lambda(x) -> include(bidderIdList, x.id) end);
+    return resList;
+}
+
+return filter_effect_bidder(list, arr);

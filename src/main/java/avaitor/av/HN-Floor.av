@@ -1,0 +1,16 @@
+## 向上取整函数
+fn ceil_bidder(bidderN, T) {
+
+  ## 计算 bidderN * T 的向上取整
+  let result = bidderN * T;
+  ## 使用数学技巧实现向上取整：如果 result 是整数则返回，否则返回 floor(result) + 1
+  let floor_val = math.floor(result);
+  if floor_val == result {
+    return long(floor_val);
+  } else {
+    return long(floor_val + 1);
+  }
+
+}
+## 调用函数（这里只是定义，实际调用时传入参数）
+return ceil_bidder(bidderN, T);

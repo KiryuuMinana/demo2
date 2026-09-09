@@ -1,0 +1,21 @@
+dt_filterHL(EPn,HLZ){
+    HLZ = string.split(HLZ,',');
+    let stepLength = 3;
+    let groupCount = count(HLZ)/stepLength;
+    let bidderCount = count(EPn);
+    p("#{groupCount} #{bidderCount}");
+    for i in range(0, groupCount){
+        let sc = HLZ[i*stepLength];
+        sc = string.replace_all(sc,"&lt;","<");
+        sc = string.replace_all(sc,"&gt;",">");
+        sc = string.replace_all(sc,"&amp;","&");
+        let n1 = long(HLZ[i*stepLength+1]);
+        let n2 = long(HLZ[i*stepLength+2]);
+        let ex = eval( sc, seq.map('N',bidderCount) );
+        if( ex ){
+            p(sc);
+            return bl_filterHL(EPn,n1,n2);
+        }
+    }
+    return seq.list();
+}

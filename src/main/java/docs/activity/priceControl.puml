@@ -1,0 +1,34 @@
+@startuml
+start
+
+:获取标段信息;
+if (标段信息存在?) then (是)
+    :获取 MatchParamVO 对象;
+    :获取 IParseCtrlPriceService 对象;
+    :解压控制价文件到临时文件夹;
+    #pink:组装pairList，注意pdf也要保存;
+    #pink:检查控制价文件类型;
+    #yellow:拿出pairList中第一个不为pdf的文件去校验，这块逻辑需要改造兼容;
+    if (文件格式为Excel?) then (是)
+        #yellow:保存一个pdf和多个Excel文件信息到数据库，不删除工程量清单;
+    else (否)
+        :按XML格式处理控制价信息;
+        :将控制价文件保存到清标表;
+
+        if (控制价为多报价项目?) then (是)
+            :获取并保存报价明细;
+        endif
+        :更新暂估和动态字段;
+        :扩展保存控制价信息;
+        :调用 CheckFileController.createFirstCheckFile 方法发起一起清标;
+        :保存清标文件;
+        :删除临时文件;
+        :返回解析结果;
+    endif
+
+else (否)
+    :TODO: 抛出异常并提示 "未找到标段信息";
+endif
+
+stop
+@enduml
