@@ -1,0 +1,33 @@
+## 报价得分 - ±0.5% 内满分、超出按偏差率插值扣分
+## 入参：list=DR（偏差率列表，price 为比例，如 0.0075 表示 0.75%），score=报价满分（一般为 10）
+## 出参：QSn，元素为 seq.map("id", id, "price", 得分)——此处 price 语义为得分
+##
+## 评分规则（drPct = DR.price * 100，单位：百分点）：
+##   |drPct| <= 0.5 → 满分
+##   drPct > 0.5    → 满分 - |drPct| * 1     （插值按整段偏差率，不是超出 0.5% 的部分）
+##   drPct < -0.5   → 满分 - |drPct| * 0.5
+##   扣至 0 为止
+## 例：0.75% → 10 - 0.75*1 = 9.25，而不是 10 - (0.75-0.5)*1 = 9.75
+
+fn custom_qs_interp_pm05(list, score) {
+    QSn = nil;
+    for key in list {
+        if QSn == nil {
+            QSn = seq.list();
+        }
+        let drPct = decimal(key.price) * 100.0M;
+        let QS = decimal(score);
+
+        if drPct > 0.5M {
+            QS = decimal(score) - math.abs(drPct) * 1.0M;
+        }
+        if drPct < -0.5M {
+            QS = decimal(score) - math.abs(drPct) * 0.5M;
+        }
+
+        seq.add(QSn, seq.map("id", key.id, "price", max(QS, 0)));
+    }
+    return QSn;
+}
+
+return custom_qs_interp_pm05(DR, score);
